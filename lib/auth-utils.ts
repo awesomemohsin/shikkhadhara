@@ -13,7 +13,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function generateToken(payload: any, expiresIn = '7d'): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn as any });
 }
 
 export function verifyToken(token: string): any {

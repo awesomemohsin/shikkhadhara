@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Fee } from '@/lib/models';
+import { Teacher, User } from '@/lib/models';
 import { getTenantContext } from '@/lib/tenant-context';
 import { TenantQuery } from '@/lib/db/tenant-query';
 import { validateRequestAccess, Role } from '@/lib/auth/rbac';
-import { verifyToken } from '@/lib/auth-utils';
+import { verifyToken, hashPassword } from '@/lib/auth-utils';
 import { logAction } from '@/lib/audit-logger';
 
 export async function GET(request: NextRequest) {
@@ -28,27 +28,16 @@ export async function GET(request: NextRequest) {
     const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
     const userTenantId = tokenTenantId || tokenOrgId;
 
-    // Only Admin or Owner can manage/view fees
+    // Only Admin or Owner can fetch the staff directory
     if (!validateRequestAccess(role, userTenantId, Role.INSTITUTION_ADMIN, headerTenantId)) {
       return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const studentId = searchParams.get('studentId');
-    const status = searchParams.get('status');
-
-    let query: any = {};
-    if (studentId) query.studentId = studentId;
-    if (status) query.status = status;
-
-    const fees = await TenantQuery.find(Fee, headerTenantId, query, null, {
-      sort: { dueDate: -1 },
-    });
-
-    return NextResponse.json({ fees });
+    const teachers = await TenantQuery.find(Teacher, headerTenantId, {}, null, { sort: { firstName: 1 } });
+    return NextResponse.json({ teachers });
   } catch (error: any) {
     return NextResponse.json(
-      { message: 'Failed to fetch fees', error: error.message },
+      { message: 'Failed to fetch staffs', error: error.message },
       { status: 500 }
     );
   }
@@ -76,39 +65,39 @@ export async function POST(request: NextRequest) {
     const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
     const userTenantId = tokenTenantId || tokenOrgId;
 
-    // Only Admin or Owner can record fees
+    // Only Admin or Owner can register staffs
     if (!validateRequestAccess(role, userTenantId, Role.INSTITUTION_ADMIN, headerTenantId)) {
       return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
     }
 
     const data = await request.json();
 
-    if (Array.isArray(data)) {
-      const records = data.map((record) => ({
-        ...record,
-        status: 'pending',
-        amountPaid: 0,
-      }));
-
-      const fees = await TenantQuery.insertMany(Fee, headerTenantId, records);
-
-      await logAction(
-        headerTenantId,
-        decoded.userId,
-        decoded.email,
-        'create',
-        'Fee',
-        undefined,
-        `Batch created ${fees.length} fee records`
-      );
-
-      return NextResponse.json({ fees }, { status: 201 });
+    // Auto-create a user login account if email is provided
+    let userId = undefined;
+    if (data.email) {
+      const existingUser = await User.findOne({ email: data.email });
+      if (!existingUser) {
+        const hashedPassword = await hashPassword('staff123'); // Default password for new staff additions
+        const userDoc = new User({
+          email: data.email,
+          password: hashedPassword,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          role: 'teacher', // Gives them standard teacher portal access
+          tenantId: headerTenantId,
+          status: 'active',
+        });
+        await userDoc.save();
+        userId = userDoc._id;
+      } else {
+        userId = existingUser._id;
+      }
     }
 
-    const fee = await TenantQuery.create(Fee, headerTenantId, {
+    const teacher = await TenantQuery.create(Teacher, headerTenantId, {
       ...data,
-      status: 'pending',
-      amountPaid: 0,
+      userId,
+      employeeId: `EMP-${Date.now()}`,
     });
 
     await logAction(
@@ -116,15 +105,15 @@ export async function POST(request: NextRequest) {
       decoded.userId,
       decoded.email,
       'create',
-      'Fee',
-      fee._id.toString(),
-      `Created fee record for ${fee.feeType} (Amount: ৳${fee.amount})`
+      'Teacher',
+      teacher._id.toString(),
+      `Created staff member ${teacher.firstName} ${teacher.lastName}`
     );
 
-    return NextResponse.json({ fee }, { status: 201 });
+    return NextResponse.json({ teacher }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
-      { message: 'Failed to create fee', error: error.message },
+      { message: 'Failed to create staff member', error: error.message },
       { status: 500 }
     );
   }

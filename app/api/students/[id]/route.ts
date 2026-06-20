@@ -1,28 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
 import { Student } from '@/lib/models';
+import { getTenantContext } from '@/lib/tenant-context';
+import { TenantQuery } from '@/lib/db/tenant-query';
+import { validateRequestAccess, Role } from '@/lib/auth/rbac';
 import { verifyToken } from '@/lib/auth-utils';
-import { Types } from 'mongoose';
+import { logAction } from '@/lib/audit-logger';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await dbConnect();
-
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    const tenantContext = await getTenantContext(request);
+    if (!tenantContext) {
+      return NextResponse.json({ message: 'Tenant context unresolved' }, { status: 400 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = verifyToken(token);
+    const { id } = await params;
+    const headerTenantId = request.headers.get('x-tenant-id') || tenantContext.tenantId;
+    const student = await TenantQuery.findById(Student, headerTenantId, id);
 
-    if (!decoded) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
-    }
-
-    const student = await Student.findById(params.id);
-
-    if (!student || student.organizationId.toString() !== decoded.organizationId) {
+    if (!student) {
       return NextResponse.json({ message: 'Student not found' }, { status: 404 });
     }
 
@@ -35,32 +30,54 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await dbConnect();
+    const tenantContext = await getTenantContext(request);
+    if (!tenantContext) {
+      return NextResponse.json({ message: 'Tenant context unresolved' }, { status: 400 });
+    }
 
+    const headerTenantId = request.headers.get('x-tenant-id') || tenantContext.tenantId;
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ message: 'Unauthorized: Token missing' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const decoded = verifyToken(token);
-
     if (!decoded) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
+    const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
+    const userTenantId = tokenTenantId || tokenOrgId;
+
+    if (!validateRequestAccess(role, userTenantId, Role.INSTITUTION_ADMIN, headerTenantId)) {
+      return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
+    }
+
+    const { id } = await params;
     const data = await request.json();
-    const student = await Student.findByIdAndUpdate(
-      params.id,
-      { ...data, updatedAt: new Date() },
-      { new: true }
+    const student = await TenantQuery.findOneAndUpdate(
+      Student,
+      headerTenantId,
+      { _id: id },
+      { ...data, updatedAt: new Date() }
     );
 
-    if (!student || student.organizationId.toString() !== decoded.organizationId) {
+    if (!student) {
       return NextResponse.json({ message: 'Student not found' }, { status: 404 });
     }
+
+    await logAction(
+      headerTenantId,
+      decoded.userId,
+      decoded.email,
+      'update',
+      'Student',
+      student._id.toString(),
+      `Updated student ${student.firstName} ${student.lastName}`
+    );
 
     return NextResponse.json({ student });
   } catch (error: any) {
@@ -71,29 +88,49 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await dbConnect();
+    const tenantContext = await getTenantContext(request);
+    if (!tenantContext) {
+      return NextResponse.json({ message: 'Tenant context unresolved' }, { status: 400 });
+    }
 
+    const headerTenantId = request.headers.get('x-tenant-id') || tenantContext.tenantId;
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ message: 'Unauthorized: Token missing' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const decoded = verifyToken(token);
-
     if (!decoded) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const student = await Student.findById(params.id);
+    const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
+    const userTenantId = tokenTenantId || tokenOrgId;
 
-    if (!student || student.organizationId.toString() !== decoded.organizationId) {
+    if (!validateRequestAccess(role, userTenantId, Role.INSTITUTION_ADMIN, headerTenantId)) {
+      return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const student = await TenantQuery.findById(Student, headerTenantId, id);
+    if (!student) {
       return NextResponse.json({ message: 'Student not found' }, { status: 404 });
     }
 
-    await Student.findByIdAndDelete(params.id);
+    await TenantQuery.deleteOne(Student, headerTenantId, { _id: id });
+
+    await logAction(
+      headerTenantId,
+      decoded.userId,
+      decoded.email,
+      'delete',
+      'Student',
+      id,
+      `Deleted student ${student.firstName} ${student.lastName}`
+    );
 
     return NextResponse.json({ message: 'Student deleted' });
   } catch (error: any) {

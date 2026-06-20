@@ -1,60 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Fee } from '@/lib/models';
+import { Teacher } from '@/lib/models';
 import { getTenantContext } from '@/lib/tenant-context';
 import { TenantQuery } from '@/lib/db/tenant-query';
 import { validateRequestAccess, Role } from '@/lib/auth/rbac';
 import { verifyToken } from '@/lib/auth-utils';
 import { logAction } from '@/lib/audit-logger';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const tenantContext = await getTenantContext(request);
     if (!tenantContext) {
       return NextResponse.json({ message: 'Tenant context unresolved' }, { status: 400 });
     }
 
+    const { id } = await params;
     const headerTenantId = request.headers.get('x-tenant-id') || tenantContext.tenantId;
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ message: 'Unauthorized: Token missing' }, { status: 401 });
+    const teacher = await TenantQuery.findById(Teacher, headerTenantId, id);
+
+    if (!teacher) {
+      return NextResponse.json({ message: 'Staff member not found' }, { status: 404 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
-    }
-
-    const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
-    const userTenantId = tokenTenantId || tokenOrgId;
-
-    // Only Admin or Owner can manage/view fees
-    if (!validateRequestAccess(role, userTenantId, Role.INSTITUTION_ADMIN, headerTenantId)) {
-      return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const studentId = searchParams.get('studentId');
-    const status = searchParams.get('status');
-
-    let query: any = {};
-    if (studentId) query.studentId = studentId;
-    if (status) query.status = status;
-
-    const fees = await TenantQuery.find(Fee, headerTenantId, query, null, {
-      sort: { dueDate: -1 },
-    });
-
-    return NextResponse.json({ fees });
+    return NextResponse.json({ teacher });
   } catch (error: any) {
     return NextResponse.json(
-      { message: 'Failed to fetch fees', error: error.message },
+      { message: 'Failed to fetch staff member', error: error.message },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const tenantContext = await getTenantContext(request);
     if (!tenantContext) {
@@ -76,55 +52,90 @@ export async function POST(request: NextRequest) {
     const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
     const userTenantId = tokenTenantId || tokenOrgId;
 
-    // Only Admin or Owner can record fees
     if (!validateRequestAccess(role, userTenantId, Role.INSTITUTION_ADMIN, headerTenantId)) {
       return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
     }
 
+    const { id } = await params;
     const data = await request.json();
+    const teacher = await TenantQuery.findOneAndUpdate(
+      Teacher,
+      headerTenantId,
+      { _id: id },
+      { ...data, updatedAt: new Date() }
+    );
 
-    if (Array.isArray(data)) {
-      const records = data.map((record) => ({
-        ...record,
-        status: 'pending',
-        amountPaid: 0,
-      }));
-
-      const fees = await TenantQuery.insertMany(Fee, headerTenantId, records);
-
-      await logAction(
-        headerTenantId,
-        decoded.userId,
-        decoded.email,
-        'create',
-        'Fee',
-        undefined,
-        `Batch created ${fees.length} fee records`
-      );
-
-      return NextResponse.json({ fees }, { status: 201 });
+    if (!teacher) {
+      return NextResponse.json({ message: 'Staff member not found' }, { status: 404 });
     }
-
-    const fee = await TenantQuery.create(Fee, headerTenantId, {
-      ...data,
-      status: 'pending',
-      amountPaid: 0,
-    });
 
     await logAction(
       headerTenantId,
       decoded.userId,
       decoded.email,
-      'create',
-      'Fee',
-      fee._id.toString(),
-      `Created fee record for ${fee.feeType} (Amount: ৳${fee.amount})`
+      'update',
+      'Teacher',
+      teacher._id.toString(),
+      `Updated staff member ${teacher.firstName} ${teacher.lastName}`
     );
 
-    return NextResponse.json({ fee }, { status: 201 });
+    return NextResponse.json({ teacher });
   } catch (error: any) {
     return NextResponse.json(
-      { message: 'Failed to create fee', error: error.message },
+      { message: 'Failed to update staff member', error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const tenantContext = await getTenantContext(request);
+    if (!tenantContext) {
+      return NextResponse.json({ message: 'Tenant context unresolved' }, { status: 400 });
+    }
+
+    const headerTenantId = request.headers.get('x-tenant-id') || tenantContext.tenantId;
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ message: 'Unauthorized: Token missing' }, { status: 401 });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
+
+    const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
+    const userTenantId = tokenTenantId || tokenOrgId;
+
+    if (!validateRequestAccess(role, userTenantId, Role.INSTITUTION_ADMIN, headerTenantId)) {
+      return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const teacher = await TenantQuery.findById(Teacher, headerTenantId, id);
+    if (!teacher) {
+      return NextResponse.json({ message: 'Staff member not found' }, { status: 404 });
+    }
+
+    await TenantQuery.deleteOne(Teacher, headerTenantId, { _id: id });
+
+    await logAction(
+      headerTenantId,
+      decoded.userId,
+      decoded.email,
+      'delete',
+      'Teacher',
+      id,
+      `Deleted staff member ${teacher.firstName} ${teacher.lastName}`
+    );
+
+    return NextResponse.json({ message: 'Staff member deleted' });
+  } catch (error: any) {
+    return NextResponse.json(
+      { message: 'Failed to delete staff member', error: error.message },
       { status: 500 }
     );
   }

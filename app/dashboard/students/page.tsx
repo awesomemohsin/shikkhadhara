@@ -7,26 +7,107 @@ import { Button } from '@/components/ui/button';
 
 export default function StudentsPage() {
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const isTeacher = user?.role === 'teacher';
   const [students, setStudents] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [subjectGroups, setSubjectGroups] = useState<any[]>([]);
+  const [classFilter, setClassFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [viewingStudent, setViewingStudent] = useState<any | null>(null);
+  const getTodayString = () => new Date().toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     class: '',
+    section: '',
+    subjectGroup: '',
     rollNumber: '',
     guardianName: '',
     guardianPhone: '',
+    joinDate: getTodayString(),
+    isSpecialChild: false,
+    discountPercentage: 0,
     status: 'active',
   });
 
   useEffect(() => {
     fetchStudents();
+    fetchAcademics();
   }, []);
+
+  useEffect(() => {
+    if (!loading && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const classParam = params.get('class');
+      const idParam = params.get('id');
+
+      if (classParam) {
+        setClassFilter(classParam);
+      }
+      if (idParam) {
+        const matchingStudent = students.find((s) => s._id === idParam);
+        if (matchingStudent) {
+          setViewingStudent(matchingStudent);
+        }
+      }
+    }
+  }, [loading, students]);
+
+  const handleClearFilter = () => {
+    setClassFilter(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('class');
+      url.searchParams.delete('id');
+      window.history.replaceState ? window.history.replaceState(null, '', url.pathname + url.search) : window.history.pushState({}, '', url.toString());
+    }
+  };
+
+  const handleCloseStudentDetails = () => {
+    setViewingStudent(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('id');
+      window.history.replaceState ? window.history.replaceState(null, '', url.pathname + url.search) : window.history.pushState({}, '', url.toString());
+    }
+  };
+
+  const handleOpenStudentDetails = (student: any) => {
+    setViewingStudent(student);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('id', student._id);
+      window.history.replaceState ? window.history.replaceState(null, '', url.pathname + url.search) : window.history.pushState({}, '', url.toString());
+    }
+  };
+
+  const fetchAcademics = async () => {
+    try {
+      const resSec = await fetch('/api/sections', { headers: { Authorization: `Bearer ${token}` } });
+      const resSub = await fetch('/api/subject-groups', { headers: { Authorization: `Bearer ${token}` } });
+      if (resSec.ok && resSub.ok) {
+        const dataSec = await resSec.json();
+        const dataSub = await resSub.json();
+        setSections(dataSec.sections || []);
+        setSubjectGroups(dataSub.subjectGroups || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch academics details:', err);
+    }
+  };
+
+  const classes = Array.from(
+    new Set([
+      ...sections.map((s) => s.class),
+      ...subjectGroups.map((sg) => sg.class),
+    ])
+  ).filter(Boolean).sort();
 
   const fetchStudents = async () => {
     try {
@@ -95,9 +176,14 @@ export default function StudentsPage() {
       email: student.email || '',
       phone: student.phone || '',
       class: student.class || '',
+      section: student.section || '',
+      subjectGroup: student.subjectGroup || '',
       rollNumber: student.rollNumber || '',
       guardianName: student.guardianName || '',
       guardianPhone: student.guardianPhone || '',
+      joinDate: student.joinDate ? new Date(student.joinDate).toISOString().split('T')[0] : getTodayString(),
+      isSpecialChild: student.isSpecialChild || false,
+      discountPercentage: student.discountPercentage || 0,
       status: student.status || 'active',
     });
     setShowForm(true);
@@ -110,9 +196,14 @@ export default function StudentsPage() {
       email: '',
       phone: '',
       class: '',
+      section: '',
+      subjectGroup: '',
       rollNumber: '',
       guardianName: '',
       guardianPhone: '',
+      joinDate: getTodayString(),
+      isSpecialChild: false,
+      discountPercentage: 0,
       status: 'active',
     });
     setEditingStudentId(null);
@@ -136,23 +227,52 @@ export default function StudentsPage() {
     }
   };
 
+  const displayedStudents = students.filter((s) => !classFilter || s.class === classFilter);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Students</h1>
           <p className="text-gray-600 dark:text-slate-400 mt-1">Manage all students in your organization</p>
         </div>
-        <Button
-          onClick={() => {
-            if (showForm) resetForm();
-            else setShowForm(true);
-          }}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Plus size={20} />
-          <span>{showForm ? 'View List' : 'Add Student'}</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={classFilter || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val) {
+                setClassFilter(val);
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('class', val);
+                  window.history.replaceState ? window.history.replaceState(null, '', url.pathname + url.search) : window.history.pushState({}, '', url.toString());
+                }
+              } else {
+                handleClearFilter();
+              }
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Filter by Class (All)</option>
+            {classes.map((cls) => (
+              <option key={cls} value={cls}>Class {cls}</option>
+            ))}
+          </select>
+
+          {!isTeacher && (
+            <Button
+              onClick={() => {
+                if (showForm) resetForm();
+                else setShowForm(true);
+              }}
+              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus size={20} />
+              <span>{showForm ? 'View List' : 'Add Student'}</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -192,14 +312,46 @@ export default function StudentsPage() {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <input
-                type="text"
-                placeholder="Class"
+              <select
                 value={formData.class}
-                onChange={(e) => setFormData({ ...formData, class: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  const selectedClass = e.target.value;
+                  setFormData({ ...formData, class: selectedClass, section: '', subjectGroup: '' });
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
                 required
-              />
+              >
+                <option value="">Select Class</option>
+                {classes.map((cls) => (
+                  <option key={cls} value={cls}>Class {cls}</option>
+                ))}
+              </select>
+              <select
+                value={formData.section}
+                onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
+                disabled={!formData.class}
+              >
+                <option value="">Select Section</option>
+                {sections
+                  .filter((sec) => sec.class === formData.class)
+                  .map((sec) => (
+                    <option key={sec._id} value={sec.name}>{sec.name}</option>
+                  ))}
+              </select>
+              <select
+                value={formData.subjectGroup}
+                onChange={(e) => setFormData({ ...formData, subjectGroup: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
+                disabled={!formData.class}
+              >
+                <option value="">Select Subject Group</option>
+                {subjectGroups
+                  .filter((sg) => sg.class === formData.class)
+                  .map((sg) => (
+                    <option key={sg._id} value={sg.name}>{sg.name}</option>
+                  ))}
+              </select>
               <input
                 type="text"
                 placeholder="Roll Number"
@@ -221,6 +373,46 @@ export default function StudentsPage() {
                 onChange={(e) => setFormData({ ...formData, guardianPhone: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Join Date</label>
+                <input
+                  type="date"
+                  value={formData.joinDate}
+                  onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
+                  required
+                />
+              </div>
+              <div className="flex items-center space-x-3 pt-6">
+                <label className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-350 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isSpecialChild}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      isSpecialChild: e.target.checked,
+                      discountPercentage: e.target.checked ? formData.discountPercentage : 0 
+                    })}
+                    className="rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="font-semibold">Special Child</span>
+                </label>
+              </div>
+              {formData.isSpecialChild && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Discount Percentage (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="e.g. 20"
+                    value={formData.discountPercentage || ''}
+                    onChange={(e) => setFormData({ ...formData, discountPercentage: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
+                    required
+                  />
+                </div>
+              )}
               {editingStudentId && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Status</label>
@@ -253,6 +445,21 @@ export default function StudentsPage() {
         </div>
       )}
 
+      {classFilter && (
+        <div className="flex items-center justify-between bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100/50 dark:border-indigo-900/30 rounded-2xl p-4 text-sm text-indigo-850 dark:text-indigo-300">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700 dark:text-slate-350">Active Filter:</span>
+            <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg text-xs font-bold">Class: {classFilter}</span>
+          </div>
+          <button
+            onClick={handleClearFilter}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline"
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12 text-slate-500">Loading students...</div>
       ) : (
@@ -263,27 +470,56 @@ export default function StudentsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Class</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Section</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Subject Group</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Roll Number</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Join Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
-              {students.length === 0 ? (
+              {displayedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500 dark:text-slate-400">
-                    No students found
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500 dark:text-slate-400 font-medium">
+                    {students.length === 0 ? 'No students found' : 'No students found matching this class filter'}
                   </td>
                 </tr>
               ) : (
-                students.map((student) => (
+                displayedStudents.map((student) => (
                   <tr key={student._id} className="hover:bg-gray-50 dark:hover:bg-slate-800/30">
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-200">
-                      {student.firstName} {student.lastName}
+                      <div className="flex flex-col">
+                        <button
+                          onClick={() => handleOpenStudentDetails(student)}
+                          className="font-bold text-left hover:underline text-indigo-655 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-300"
+                        >
+                          {student.firstName} {student.lastName}
+                        </button>
+                        {student.isSpecialChild && (
+                          <span className="mt-1 self-start px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-850 dark:bg-amber-950/40 dark:text-amber-400 rounded border border-amber-200/50">
+                            Special ({student.discountPercentage}% Disc.)
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-350">{student.email || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-350">Class {student.class}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-355">{student.email || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-355">
+                      <a
+                        href={`/dashboard/classes?class=${encodeURIComponent(student.class)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-650 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-350 font-bold hover:underline"
+                      >
+                        Class {student.class}
+                      </a>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-350">{student.section || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-350">{student.subjectGroup || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-350">{student.rollNumber || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-slate-350">
+                      {student.joinDate ? new Date(student.joinDate).toLocaleDateString() : 'N/A'}
+                    </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         student.status === 'active'
@@ -294,18 +530,22 @@ export default function StudentsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm flex space-x-2.5">
-                      <button onClick={() => setViewingStudent(student)} className="text-blue-600 dark:text-indigo-400 hover:text-blue-800 dark:hover:text-indigo-350">
+                      <button onClick={() => handleOpenStudentDetails(student)} className="text-blue-600 dark:text-indigo-400 hover:text-blue-800 dark:hover:text-indigo-350">
                         <Eye size={18} />
                       </button>
-                      <button onClick={() => handleEditClick(student)} className="text-yellow-600 dark:text-amber-500 hover:text-yellow-800 dark:hover:text-amber-450">
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStudent(student._id)}
-                        className="text-red-600 dark:text-rose-500 hover:text-red-800 dark:hover:text-rose-450"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {!isTeacher && (
+                        <>
+                          <button onClick={() => handleEditClick(student)} className="text-yellow-600 dark:text-amber-500 hover:text-yellow-800 dark:hover:text-amber-450">
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(student._id)}
+                            className="text-red-600 dark:text-rose-500 hover:text-red-800 dark:hover:text-rose-450"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -318,11 +558,11 @@ export default function StudentsPage() {
       {/* Details View Modal */}
       {viewingStudent && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setViewingStudent(null)} />
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={handleCloseStudentDetails} />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-border/80 rounded-3xl shadow-2xl z-50 p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-border/50 pb-4 mb-6">
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Student Profile Details</h3>
-              <button onClick={() => setViewingStudent(null)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+              <button onClick={handleCloseStudentDetails} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                 <X size={18} className="text-slate-400" />
               </button>
             </div>
@@ -343,7 +583,24 @@ export default function StudentsPage() {
               <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-4">
                 <div>
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Class</span>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Class {viewingStudent.class}</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <a
+                      href={`/dashboard/classes?class=${encodeURIComponent(viewingStudent.class)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-650 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-350 font-bold hover:underline"
+                    >
+                      Class {viewingStudent.class}
+                    </a>
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Section</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{viewingStudent.section || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Subject Group</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{viewingStudent.subjectGroup || 'N/A'}</span>
                 </div>
                 <div>
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Roll Number</span>
@@ -365,11 +622,25 @@ export default function StudentsPage() {
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Guardian Phone</span>
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{viewingStudent.guardianPhone || 'N/A'}</span>
                 </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Join Date</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    {viewingStudent.joinDate ? new Date(viewingStudent.joinDate).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Discount Status</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    {viewingStudent.isSpecialChild 
+                      ? `Special Child (${viewingStudent.discountPercentage || 0}% Discount)`
+                      : 'None'}
+                  </span>
+                </div>
               </div>
             </div>
             
             <div className="mt-8 flex justify-end">
-              <Button onClick={() => setViewingStudent(null)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700/80 dark:text-slate-300 font-semibold px-5 rounded-xl border border-border/20">
+              <Button onClick={handleCloseStudentDetails} className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700/80 dark:text-slate-300 font-semibold px-5 rounded-xl border border-border/20">
                 Close
               </Button>
             </div>

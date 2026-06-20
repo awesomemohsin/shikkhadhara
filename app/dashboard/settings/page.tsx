@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Settings as SettingsIcon, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Plus, Trash2, BookOpen, Layers, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function SettingsPage() {
@@ -302,7 +302,7 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'organization' && (
-              <form onSubmit={handleSaveOrganization} className="space-y-6">
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
                     Organization Settings
@@ -315,13 +315,8 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         value={organizationData.name}
-                        onChange={(e) =>
-                          setOrganizationData({
-                            ...organizationData,
-                            name: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
                         required
                       />
                     </div>
@@ -332,13 +327,8 @@ export default function SettingsPage() {
                         </label>
                         <select
                           value={organizationData.timezone}
-                          onChange={(e) =>
-                            setOrganizationData({
-                              ...organizationData,
-                              timezone: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none"
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
                         >
                           <option value="Asia/Dhaka">Asia/Dhaka (GMT+6)</option>
                           <option value="UTC">UTC (GMT+0)</option>
@@ -351,13 +341,8 @@ export default function SettingsPage() {
                         </label>
                         <select
                           value={organizationData.currency}
-                          onChange={(e) =>
-                            setOrganizationData({
-                              ...organizationData,
-                              currency: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none"
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
                         >
                           <option value="BDT">BDT (৳)</option>
                           <option value="USD">USD ($)</option>
@@ -370,27 +355,14 @@ export default function SettingsPage() {
                         </label>
                         <select
                           value={organizationData.language}
-                          onChange={(e) =>
-                            setOrganizationData({
-                              ...organizationData,
-                              language: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none"
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
                         >
                           <option value="en">English (US)</option>
                           <option value="bn">Bengali (BD)</option>
                         </select>
                       </div>
                     </div>
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center space-x-2 mt-4"
-                    >
-                      <Save size={18} />
-                      <span>{loading ? 'Saving...' : 'Save Organization Details'}</span>
-                    </Button>
                   </div>
                 </div>
               </form>

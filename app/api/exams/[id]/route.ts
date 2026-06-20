@@ -3,7 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import { Exam } from '@/lib/models';
 import { verifyToken } from '@/lib/auth-utils';
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
 
@@ -19,9 +19,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
 
+    const { id } = await params;
     const data = await request.json();
     const exam = await Exam.findByIdAndUpdate(
-      params.id,
+      id,
       { ...data, updatedAt: new Date() },
       { new: true }
     );
@@ -39,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
 
@@ -55,13 +56,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
 
-    const exam = await Exam.findById(params.id);
+    const { id } = await params;
+    const exam = await Exam.findById(id);
 
     if (!exam || exam.organizationId.toString() !== decoded.organizationId) {
       return NextResponse.json({ message: 'Exam not found' }, { status: 404 });
     }
 
-    await Exam.findByIdAndDelete(params.id);
+    await Exam.findByIdAndDelete(id);
 
     return NextResponse.json({ message: 'Exam deleted' });
   } catch (error: any) {

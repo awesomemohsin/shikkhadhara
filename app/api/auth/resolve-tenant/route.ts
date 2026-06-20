@@ -19,9 +19,16 @@ export async function GET(request: NextRequest) {
       // Fallback to the first tenant in local database to avoid blocking local developer setups
       const fallbackTenant = await Tenant.findOne({});
       if (fallbackTenant) {
+        if (fallbackTenant.status !== 'active') {
+          return NextResponse.json({ message: 'Tenant is disabled', status: 'disabled' }, { status: 403 });
+        }
         return NextResponse.json({ tenantId: fallbackTenant._id.toString() });
       }
       return NextResponse.json({ message: 'Tenant not found' }, { status: 404 });
+    }
+
+    if (tenant.status !== 'active') {
+      return NextResponse.json({ message: 'Tenant is disabled', status: 'disabled' }, { status: 403 });
     }
     
     return NextResponse.json({ tenantId: tenant._id.toString() });

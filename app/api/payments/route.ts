@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Payment, Fee, Invoice } from '@/lib/models';
 import { verifyToken } from '@/lib/auth-utils';
+import { logAction } from '@/lib/audit-logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,6 +88,16 @@ export async function POST(request: NextRequest) {
 
       await fee.save();
     }
+
+    await logAction(
+      decoded.tenantId || decoded.organizationId,
+      decoded.userId,
+      decoded.email,
+      'create',
+      'Payment',
+      payment._id.toString(),
+      `Recorded payment of ৳${payment.amount} via ${payment.paymentMethod} (Transaction ID: ${transactionId})`
+    );
 
     return NextResponse.json(
       {

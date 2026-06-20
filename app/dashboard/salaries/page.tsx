@@ -12,6 +12,7 @@ export default function SalariesPage() {
   const tenantSlug = useTenantSlug();
   const [salaries, setSalaries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
 
   // Validate admin credentials
@@ -24,6 +25,73 @@ export default function SalariesPage() {
       setLoading(false);
     }
   }, [tenantSlug, isAuthorized]);
+
+  const handleRunPayroll = async () => {
+    setRunning(true);
+    setError('');
+    try {
+      const resTeachers = await fetch('/api/staffs', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resTeachers.ok) {
+        throw new Error('Failed to fetch staff directory');
+      }
+      const dataTeachers = await resTeachers.json();
+      const teachersList = dataTeachers.teachers || [];
+
+      const today = new Date();
+      const currentMonth = today.toLocaleString('default', { month: 'short' });
+      const currentYear = today.getFullYear();
+
+      let createdCount = 0;
+
+      for (const teacher of teachersList) {
+        const alreadyExists = salaries.some(
+          (s) =>
+            (s.employeeId?._id === teacher._id || s.employeeId === teacher._id) &&
+            s.paymentMonth === currentMonth &&
+            s.paymentYear === currentYear
+        );
+
+        if (!alreadyExists) {
+          const res = await fetch('/api/salaries', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              employeeId: teacher._id,
+              employeeType: 'Teacher',
+              basicSalary: teacher.salary || 0,
+              allowances: 0,
+              deductions: 0,
+              netSalary: teacher.salary || 0,
+              paymentMonth: currentMonth,
+              paymentYear: currentYear,
+              status: 'pending',
+              paymentMethod: 'cash',
+            }),
+          });
+          if (res.ok) {
+            createdCount++;
+          }
+        }
+      }
+
+      if (createdCount > 0) {
+        alert(`Payroll run completed! Generated ${createdCount} pending salary entries for ${currentMonth} ${currentYear}.`);
+        fetchSalaries();
+      } else {
+        alert(`Payroll is already up to date for ${currentMonth} ${currentYear}. No new entries created.`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Failed to run payroll');
+    } finally {
+      setRunning(false);
+    }
+  };
 
   const fetchSalaries = async () => {
     try {
@@ -67,8 +135,12 @@ export default function SalariesPage() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Main Payroll & Salaries</h1>
           <p className="text-slate-500 mt-1">Manage institutional payroll, bonuses, and staff disbursements</p>
         </div>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md shadow-indigo-600/10">
-          Run Payroll
+        <Button
+          onClick={handleRunPayroll}
+          disabled={running}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md shadow-indigo-600/10"
+        >
+          {running ? 'Processing...' : 'Run Payroll'}
         </Button>
       </div>
 
@@ -103,7 +175,9 @@ export default function SalariesPage() {
               ) : (
                 salaries.map((salary) => (
                   <tr key={salary._id} className="hover:bg-slate-50/40">
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-800">{salary.employeeId?.firstName}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-800">
+                      {salary.employeeId ? `${salary.employeeId.firstName} ${salary.employeeId.lastName || ''}` : 'N/A'}
+                    </td>
                     <td className="px-6 py-4 text-sm text-slate-500 capitalize">{salary.employeeType}</td>
                     <td className="px-6 py-4 text-sm text-slate-800 font-medium">৳{salary.basicSalary}</td>
                     <td className="px-6 py-4 text-sm text-slate-850 font-bold">৳{salary.netSalary}</td>

@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const tenantCache = new Map<string, { tenantId: string; expiry: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  
+  // Prevent infinite loops when the middleware fetches the tenant resolver endpoint
+  if (pathname.startsWith('/api/auth/resolve-tenant')) {
+    return NextResponse.next();
+  }
+
   const segments = pathname.split('/').filter(Boolean);
   
   let tenantSlug = '';
   if (segments.length > 0) {
     const firstSegment = segments[0];
-    const ignoredSegments = ['api', '_next', 'favicon.ico', 'logo.png', 'favicon.png', 'images', 'public'];
+    const ignoredSegments = ['api', '_next', 'favicon.ico', 'logo.png', 'favicon.png', 'images', 'public', 'login', 'register', 'dashboard'];
     
     // Ignore static assets, next build files, and api routes
     if (!ignoredSegments.includes(firstSegment) && !firstSegment.includes('.')) {
@@ -20,35 +29,51 @@ export async function middleware(request: NextRequest) {
   let tenantId = '';
 
   if (tenantSlug) {
-    try {
-      // Fetch tenantId from the database resolver API
-      const resolverUrl = new URL(`/api/auth/resolve-tenant?subdomain=${tenantSlug}`, request.url);
-      const res = await fetch(resolverUrl.toString());
-      
-      if (res.ok) {
-        const data = await res.json();
-        tenantId = data.tenantId || '';
-      } else {
-        // Invalid slug: redirect to home page as requested
-        return NextResponse.redirect(new URL('/', request.url));
+    const cached = tenantCache.get(tenantSlug);
+    if (cached && cached.expiry > Date.now()) {
+      tenantId = cached.tenantId;
+    } else {
+      try {
+        // Fetch tenantId from the database resolver API
+        const resolverUrl = new URL(`/api/auth/resolve-tenant?subdomain=${tenantSlug}`, request.url);
+        const res = await fetch(resolverUrl.toString());
+        
+        if (res.ok) {
+          const data = await res.json();
+          tenantId = data.tenantId || '';
+          if (tenantId) {
+            tenantCache.set(tenantSlug, { tenantId, expiry: Date.now() + CACHE_TTL });
+          }
+        } else {
+          // Invalid slug: redirect to home page as requested
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+      } catch (e) {
+        console.warn('[Middleware] Failed to resolve tenantId for slug:', tenantSlug, e);
       }
-    } catch (e) {
-      console.warn('[Middleware] Failed to resolve tenantId for slug:', tenantSlug, e);
     }
   }
 
   // Fallback for direct flat routes or API calls in local development if no slug present
   if (!tenantId) {
     const headerSubdomain = request.headers.get('x-tenant-subdomain') || 'shikkhadhara';
-    try {
-      const resolverUrl = new URL(`/api/auth/resolve-tenant?subdomain=${headerSubdomain}`, request.url);
-      const res = await fetch(resolverUrl.toString());
-      if (res.ok) {
-        const data = await res.json();
-        tenantId = data.tenantId || '';
+    const cached = tenantCache.get(headerSubdomain);
+    if (cached && cached.expiry > Date.now()) {
+      tenantId = cached.tenantId;
+    } else {
+      try {
+        const resolverUrl = new URL(`/api/auth/resolve-tenant?subdomain=${headerSubdomain}`, request.url);
+        const res = await fetch(resolverUrl.toString());
+        if (res.ok) {
+          const data = await res.json();
+          tenantId = data.tenantId || '';
+          if (tenantId) {
+            tenantCache.set(headerSubdomain, { tenantId, expiry: Date.now() + CACHE_TTL });
+          }
+        }
+      } catch (e) {
+        console.warn('[Middleware] Failed default fallback tenantId resolution:', e);
       }
-    } catch (e) {
-      console.warn('[Middleware] Failed default fallback tenantId resolution:', e);
     }
   }
 

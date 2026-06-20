@@ -10,6 +10,7 @@ export interface User {
   tenantId: string;
   organizationId: string; // Alias
   profileImage?: string;
+  phone?: string;
 }
 
 export interface Tenant {

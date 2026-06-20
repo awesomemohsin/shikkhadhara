@@ -26,7 +26,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Strict tenant-scoped user query
-    const user = await User.findOne({ email, tenantId: tenantContext.tenantId }).select('+password');
+    let user = await User.findOne({ email, tenantId: tenantContext.tenantId }).select('+password');
+
+    if (!user) {
+      // Fallback: If not found in the current tenant, try to search globally for the user by email
+      user = await User.findOne({ email }).select('+password');
+      if (user) {
+        // If found globally, update tenantContext to match this user's tenant
+        const userTenant = await Tenant.findById(user.tenantId);
+        if (userTenant) {
+          tenantContext.tenantId = user.tenantId.toString();
+          tenantContext.tenant = userTenant;
+        } else {
+          user = null;
+        }
+      }
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -49,6 +64,16 @@ export async function POST(request: NextRequest) {
         { message: 'Your account has been suspended' },
         { status: 403 }
       );
+    }
+
+    if (user.role !== 'owner') {
+      const userTenant = await Tenant.findById(user.tenantId);
+      if (userTenant && userTenant.status !== 'active') {
+        return NextResponse.json(
+          { message: 'This school portal has been deactivated. Please contact support.' },
+          { status: 403 }
+        );
+      }
     }
 
     // Update last login

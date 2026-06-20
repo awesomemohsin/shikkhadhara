@@ -1,8 +1,26 @@
-import { ReactNode } from 'react';
+'use client';
+
+import { ReactNode, useEffect } from 'react';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { TopNavbar } from '@/components/dashboard/top-navbar';
+import { useAuthStore } from '@/lib/store';
+import { useTenantSlug } from '@/lib/hooks/use-tenant-slug';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const user = useAuthStore((state) => state.user);
+  const tenantSlug = useTenantSlug();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user?.role === 'owner' && tenantSlug) {
+      // Strip the subdomain prefix for owner roles
+      const cleanPath = pathname.replace(new RegExp(`^\\/${tenantSlug}`), '') || '/dashboard';
+      router.push(cleanPath);
+    }
+  }, [user, tenantSlug, pathname, router]);
+
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />

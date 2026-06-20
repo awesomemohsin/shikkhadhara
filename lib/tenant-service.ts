@@ -1,4 +1,4 @@
-import mongoose, { Model, Document, FilterQuery, UpdateQuery, QueryOptions } from 'mongoose';
+import mongoose, { Model, Document, QueryFilter, UpdateQuery, QueryOptions } from 'mongoose';
 
 export class TenantService {
   private tenantId: mongoose.Types.ObjectId;
@@ -15,7 +15,7 @@ export class TenantService {
   }
 
   // Inject tenantId filter to query
-  private injectTenantFilter<T>(query: FilterQuery<T> = {}): FilterQuery<T> {
+  private injectTenantFilter<T>(query: QueryFilter<T> = {}): QueryFilter<T> {
     return { ...query, tenantId: this.tenantId };
   }
 
@@ -27,7 +27,7 @@ export class TenantService {
   // Find operations
   async find<T extends Document>(
     model: Model<T>,
-    filter: FilterQuery<T> = {},
+    filter: QueryFilter<T> = {},
     projection?: any,
     options?: QueryOptions
   ): Promise<T[]> {
@@ -36,7 +36,7 @@ export class TenantService {
 
   async findOne<T extends Document>(
     model: Model<T>,
-    filter: FilterQuery<T> = {},
+    filter: QueryFilter<T> = {},
     projection?: any,
     options?: QueryOptions
   ): Promise<T | null> {
@@ -60,31 +60,31 @@ export class TenantService {
 
   async insertMany<T extends Document>(model: Model<T>, docs: any[], options?: any): Promise<T[]> {
     const data = docs.map((d) => this.injectTenantData(d));
-    return model.insertMany(data, options);
+    return model.insertMany(data, options) as unknown as Promise<T[]>;
   }
 
   // Update operations
   async updateOne<T extends Document>(
     model: Model<T>,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     update: UpdateQuery<T>,
     options?: QueryOptions
   ) {
-    return model.updateOne(this.injectTenantFilter(filter), update, options);
+    return model.updateOne(this.injectTenantFilter(filter), update, options as any);
   }
 
   async updateMany<T extends Document>(
     model: Model<T>,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     update: UpdateQuery<T>,
     options?: QueryOptions
   ) {
-    return model.updateMany(this.injectTenantFilter(filter), update, options);
+    return model.updateMany(this.injectTenantFilter(filter), update, options as any);
   }
 
   async findOneAndUpdate<T extends Document>(
     model: Model<T>,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     update: UpdateQuery<T>,
     options: QueryOptions = {}
   ): Promise<T | null> {
@@ -92,15 +92,15 @@ export class TenantService {
   }
 
   // Delete operations
-  async deleteOne<T extends Document>(model: Model<T>, filter: FilterQuery<T>, options?: QueryOptions) {
-    return model.deleteOne(this.injectTenantFilter(filter), options);
+  async deleteOne<T extends Document>(model: Model<T>, filter: QueryFilter<T>, options?: QueryOptions) {
+    return model.deleteOne(this.injectTenantFilter(filter), options as any);
   }
 
-  async deleteMany<T extends Document>(model: Model<T>, filter: FilterQuery<T>, options?: QueryOptions) {
-    return model.deleteMany(this.injectTenantFilter(filter), options);
+  async deleteMany<T extends Document>(model: Model<T>, filter: QueryFilter<T>, options?: QueryOptions) {
+    return model.deleteMany(this.injectTenantFilter(filter), options as any);
   }
 
-  async countDocuments<T extends Document>(model: Model<T>, filter: FilterQuery<T> = {}): Promise<number> {
+  async countDocuments<T extends Document>(model: Model<T>, filter: QueryFilter<T> = {}): Promise<number> {
     return model.countDocuments(this.injectTenantFilter(filter));
   }
 }

@@ -14,7 +14,8 @@ export default function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedClass, setSelectedClass] = useState('');
   const [attendanceData, setAttendanceData] = useState<{ [key: string]: string }>({});
-  const [classes, setClasses] = useState<string[]>(['A', 'B', 'C', 'D']);
+  const [sections, setSections] = useState<any[]>([]);
+  const [subjectGroups, setSubjectGroups] = useState<any[]>([]);
 
   const isAuthorized = user && ['super_admin', 'admin', 'teacher', 'staff'].includes(user.role);
 
@@ -22,6 +23,7 @@ export default function AttendancePage() {
     if (isAuthorized) {
       fetchAttendance();
       fetchStudents();
+      fetchAcademics();
     }
   }, [selectedDate, selectedClass, isAuthorized]);
 
@@ -37,6 +39,21 @@ export default function AttendancePage() {
       }
     } catch (error) {
       console.error('Failed to fetch students:', error);
+    }
+  };
+
+  const fetchAcademics = async () => {
+    try {
+      const resSec = await fetch('/api/sections', { headers: { Authorization: `Bearer ${token}` } });
+      const resSub = await fetch('/api/subject-groups', { headers: { Authorization: `Bearer ${token}` } });
+      if (resSec.ok && resSub.ok) {
+        const dataSec = await resSec.json();
+        const dataSub = await resSub.json();
+        setSections(dataSec.sections || []);
+        setSubjectGroups(dataSub.subjectGroups || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch academics details:', err);
     }
   };
 
@@ -96,6 +113,13 @@ export default function AttendancePage() {
     return students.filter((s) => s.class === selectedClass);
   };
 
+  const classesList = Array.from(
+    new Set([
+      ...sections.map((s) => s.class),
+      ...subjectGroups.map((sg) => sg.class),
+    ])
+  ).filter(Boolean).sort();
+
   if (!isAuthorized) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white rounded-lg shadow-sm border border-red-100">
@@ -139,7 +163,7 @@ export default function AttendancePage() {
               required
             >
               <option value="">Select a class</option>
-              {classes.map((c) => (
+              {classesList.map((c) => (
                 <option key={c} value={c}>
                   Class {c}
                 </option>

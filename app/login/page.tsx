@@ -7,12 +7,14 @@ import Image from 'next/image';
 import { useAuthStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTenantSlug } from '@/lib/hooks/use-tenant-slug';
 
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
   const setToken = useAuthStore((state) => state.setToken);
   const setOrganization = useAuthStore((state) => state.setOrganization);
+  const tenantSlug = useTenantSlug();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -34,9 +36,16 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (tenantSlug) {
+        headers['x-tenant-subdomain'] = tenantSlug;
+      }
+
+      const response = await fetch(`/api/auth/login${tenantSlug ? `?subdomain=${tenantSlug}` : ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(formData),
       });
 
@@ -49,6 +58,7 @@ export default function LoginPage() {
 
       // Store in localStorage
       localStorage.setItem('token', data.token);
+      document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
       localStorage.setItem('user', JSON.stringify(data.user));
       if (data.organization) {
         localStorage.setItem('organization', JSON.stringify(data.organization));
@@ -62,7 +72,16 @@ export default function LoginPage() {
       }
 
       // Redirect to dashboard
-      router.push('/dashboard');
+      if (data.user.role === 'owner') {
+        router.push('/dashboard');
+      } else {
+        const userTenantSlug = data.tenant?.subdomain;
+        if (userTenantSlug && userTenantSlug !== 'shikkhadhara') {
+          router.push(`/${userTenantSlug}/dashboard`);
+        } else {
+          router.push('/dashboard');
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

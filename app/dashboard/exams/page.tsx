@@ -24,9 +24,13 @@ export default function ExamsPage() {
     status: 'scheduled',
   });
 
+  const [sections, setSections] = useState<any[]>([]);
+  const [subjectGroups, setSubjectGroups] = useState<any[]>([]);
+
   useEffect(() => {
     fetchExams();
     fetchResults();
+    fetchAcademics();
   }, []);
 
   const fetchExams = async () => {
@@ -58,6 +62,21 @@ export default function ExamsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch results:', error);
+    }
+  };
+
+  const fetchAcademics = async () => {
+    try {
+      const resSec = await fetch('/api/sections', { headers: { Authorization: `Bearer ${token}` } });
+      const resSub = await fetch('/api/subject-groups', { headers: { Authorization: `Bearer ${token}` } });
+      if (resSec.ok && resSub.ok) {
+        const dataSec = await resSec.json();
+        const dataSub = await resSub.json();
+        setSections(dataSec.sections || []);
+        setSubjectGroups(dataSub.subjectGroups || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch academics details:', err);
     }
   };
 
@@ -169,6 +188,19 @@ export default function ExamsPage() {
     }
   };
 
+  const classesList = Array.from(
+    new Set([
+      ...sections.map((s) => s.class),
+      ...subjectGroups.map((sg) => sg.class),
+    ])
+  ).filter(Boolean).sort();
+
+  const getSubjectsForClass = (className: string) => {
+    if (!className) return [];
+    const classGroup = subjectGroups.find((sg) => sg.class === className);
+    return classGroup?.subjects || [];
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -229,22 +261,29 @@ export default function ExamsPage() {
                       className="px-3 py-2 border border-gray-300 rounded-lg"
                       required
                     />
-                    <input
-                      type="text"
-                      placeholder="Class"
+                    <select
                       value={formData.class}
-                      onChange={(e) => setFormData({ ...formData, class: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                      onChange={(e) => setFormData({ ...formData, class: e.target.value, subject: '' })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-slate-800"
                       required
-                    />
-                    <input
-                      type="text"
-                      placeholder="Subject"
+                    >
+                      <option value="">Select Class</option>
+                      {classesList.map((c: string) => (
+                        <option key={c} value={c}>Class {c}</option>
+                      ))}
+                    </select>
+                    <select
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                      className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-slate-800"
+                      disabled={!formData.class}
                       required
-                    />
+                    >
+                      <option value="">Select Subject</option>
+                      {getSubjectsForClass(formData.class).map((s: string) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
                     <input
                       type="datetime-local"
                       value={formData.date}

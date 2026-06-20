@@ -76,8 +76,11 @@ const studentSchema = new mongoose.Schema({
   guardianEmail: String,
   class: { type: String, required: true },
   section: String,
+  subjectGroup: String,
   rollNumber: String,
   joinDate: { type: Date, default: Date.now },
+  isSpecialChild: { type: Boolean, default: false },
+  discountPercentage: { type: Number, default: 0 },
   status: { type: String, enum: ['active', 'inactive', 'graduated', 'transferred'], default: 'active' },
   profileImage: String,
   createdAt: { type: Date, default: Date.now },
@@ -103,6 +106,7 @@ const teacherSchema = new mongoose.Schema({
   subjects: [String],
   salary: Number,
   salaryFrequency: { type: String, enum: ['monthly', 'quarterly', 'yearly'], default: 'monthly' },
+  position: { type: String, enum: ['teacher', 'senior_teacher', 'headmaster', 'associate_headmaster', 'other'], default: 'teacher' },
   status: { type: String, enum: ['active', 'inactive', 'on_leave', 'suspended'], default: 'active' },
   profileImage: String,
   createdAt: { type: Date, default: Date.now },
@@ -355,6 +359,39 @@ const gallerySchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Session Schema
+const sessionSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  name: { type: String, required: true },
+  startDate: Date,
+  endDate: Date,
+  status: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+// Section Schema
+const sectionSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  name: { type: String, required: true },
+  class: { type: String, required: true },
+  monthlyFee: { type: Number, default: 0 },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+// SubjectGroup Schema
+const subjectGroupSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  name: { type: String, required: true },
+  class: { type: String, required: true },
+  subjects: [String],
+  description: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
 // Create or get models
 export const Tenant = mongoose.models.Tenant || mongoose.model('Tenant', tenantSchema);
 export const Organization = Tenant; // Maintain Organization alias for backwards compatibility during migration if needed
@@ -378,3 +415,22 @@ export const Salary = mongoose.models.Salary || mongoose.model('Salary', salaryS
 export const Inventory = mongoose.models.Inventory || mongoose.model('Inventory', inventorySchema);
 export const Hostel = mongoose.models.Hostel || mongoose.model('Hostel', hostelSchema);
 export const Gallery = mongoose.models.Gallery || mongoose.model('Gallery', gallerySchema);
+
+export const Session = mongoose.models.Session || mongoose.model('Session', sessionSchema);
+export const Section = mongoose.models.Section || mongoose.model('Section', sectionSchema);
+export const SubjectGroup = mongoose.models.SubjectGroup || mongoose.model('SubjectGroup', subjectGroupSchema);
+
+// AuditLog Schema
+const auditLogSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userEmail: { type: String, required: true },
+  action: { type: String, enum: ['create', 'update', 'delete'], required: true },
+  entity: { type: String, required: true }, // e.g. 'Student', 'Teacher', 'Section', 'SubjectGroup', 'Fee', 'Payment'
+  entityId: String,
+  details: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);
+

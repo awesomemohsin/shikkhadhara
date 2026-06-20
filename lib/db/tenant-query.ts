@@ -1,4 +1,4 @@
-import mongoose, { Model, Document, FilterQuery, UpdateQuery, QueryOptions } from 'mongoose';
+import mongoose, { Model, Document, QueryFilter, UpdateQuery, QueryOptions } from 'mongoose';
 
 export class TenantQuery {
   // Validate that a tenantId is present, otherwise throw a Security Violation
@@ -11,8 +11,8 @@ export class TenantQuery {
   // Inject tenantId filter to query
   static injectTenantFilter<T>(
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T> = {}
-  ): FilterQuery<T> {
+    filter: QueryFilter<T> = {}
+  ): QueryFilter<T> {
     this.validateTenantId(tenantId);
     const tId = typeof tenantId === 'string' ? new mongoose.Types.ObjectId(tenantId) : tenantId;
     return { ...filter, tenantId: tId };
@@ -29,7 +29,7 @@ export class TenantQuery {
   static async find<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T> = {},
+    filter: QueryFilter<T> = {},
     projection?: any,
     options?: QueryOptions
   ): Promise<T[]> {
@@ -40,7 +40,7 @@ export class TenantQuery {
   static async findOne<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T> = {},
+    filter: QueryFilter<T> = {},
     projection?: any,
     options?: QueryOptions
   ): Promise<T | null> {
@@ -78,36 +78,36 @@ export class TenantQuery {
   ): Promise<T[]> {
     this.validateTenantId(tenantId);
     const data = docs.map((d) => this.injectTenantData(tenantId, d));
-    return model.insertMany(data, options);
+    return model.insertMany(data, options) as unknown as Promise<T[]>;
   }
 
   // Update operations
   static async updateOne<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     update: UpdateQuery<T>,
     options?: QueryOptions
   ) {
     this.validateTenantId(tenantId);
-    return model.updateOne(this.injectTenantFilter(tenantId, filter), update, options);
+    return model.updateOne(this.injectTenantFilter(tenantId, filter), update, options as any);
   }
 
   static async updateMany<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     update: UpdateQuery<T>,
     options?: QueryOptions
   ) {
     this.validateTenantId(tenantId);
-    return model.updateMany(this.injectTenantFilter(tenantId, filter), update, options);
+    return model.updateMany(this.injectTenantFilter(tenantId, filter), update, options as any);
   }
 
   static async findOneAndUpdate<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     update: UpdateQuery<T>,
     options: QueryOptions = {}
   ): Promise<T | null> {
@@ -122,27 +122,27 @@ export class TenantQuery {
   static async deleteOne<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     options?: QueryOptions
   ) {
     this.validateTenantId(tenantId);
-    return model.deleteOne(this.injectTenantFilter(tenantId, filter), options);
+    return model.deleteOne(this.injectTenantFilter(tenantId, filter), options as any);
   }
 
   static async deleteMany<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T>,
+    filter: QueryFilter<T>,
     options?: QueryOptions
   ) {
     this.validateTenantId(tenantId);
-    return model.deleteMany(this.injectTenantFilter(tenantId, filter), options);
+    return model.deleteMany(this.injectTenantFilter(tenantId, filter), options as any);
   }
 
   static async countDocuments<T extends Document>(
     model: Model<T>,
     tenantId: string | mongoose.Types.ObjectId,
-    filter: FilterQuery<T> = {}
+    filter: QueryFilter<T> = {}
   ): Promise<number> {
     this.validateTenantId(tenantId);
     return model.countDocuments(this.injectTenantFilter(tenantId, filter));

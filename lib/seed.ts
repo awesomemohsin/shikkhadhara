@@ -1,5 +1,6 @@
-import { Student, Teacher, Attendance, Exam, Fee } from './models';
+import { Student, Teacher, User, Attendance, Exam, Fee, Session, Section, SubjectGroup } from './models';
 import mongoose from 'mongoose';
+import { hashPassword } from './auth-utils';
 
 export async function seedOrganizationData(tenantId: mongoose.Types.ObjectId) {
   // 1. Seed Teachers
@@ -14,6 +15,7 @@ export async function seedOrganizationData(tenantId: mongoose.Types.ObjectId) {
       salary: 45000,
       assignedClasses: ['A', 'B'],
       subjects: ['Physics', 'Science'],
+      position: 'senior_teacher',
       status: 'active',
       employeeId: `EMP-T-${Date.now()}-1`,
     },
@@ -27,6 +29,7 @@ export async function seedOrganizationData(tenantId: mongoose.Types.ObjectId) {
       salary: 40000,
       assignedClasses: ['B', 'C'],
       subjects: ['English', 'Literature'],
+      position: 'teacher',
       status: 'active',
       employeeId: `EMP-T-${Date.now()}-2`,
     },
@@ -40,6 +43,7 @@ export async function seedOrganizationData(tenantId: mongoose.Types.ObjectId) {
       salary: 55000,
       assignedClasses: ['C', 'D'],
       subjects: ['Chemistry', 'Science'],
+      position: 'headmaster',
       status: 'active',
       employeeId: `EMP-T-${Date.now()}-3`,
     },
@@ -53,6 +57,7 @@ export async function seedOrganizationData(tenantId: mongoose.Types.ObjectId) {
       salary: 60000,
       assignedClasses: ['A', 'D'],
       subjects: ['Mathematics', 'Higher Math'],
+      position: 'associate_headmaster',
       status: 'active',
       employeeId: `EMP-T-${Date.now()}-4`,
     },
@@ -66,14 +71,41 @@ export async function seedOrganizationData(tenantId: mongoose.Types.ObjectId) {
       salary: 50000,
       assignedClasses: ['A', 'C'],
       subjects: ['ICT', 'Computer Science'],
+      position: 'teacher',
       status: 'active',
       employeeId: `EMP-T-${Date.now()}-5`,
     },
   ];
 
-  const teachers = await Teacher.insertMany(
-    teachersData.map((t) => ({ ...t, tenantId }))
-  );
+  const teachers = [];
+  const hashedPassword = await hashPassword('admin123'); // Default password for all seeded staff
+  for (const t of teachersData) {
+    let userId = undefined;
+    if (t.email) {
+      let userDoc = await User.findOne({ email: t.email });
+      if (!userDoc) {
+        userDoc = new User({
+          email: t.email,
+          password: hashedPassword,
+          firstName: t.firstName,
+          lastName: t.lastName,
+          role: 'teacher',
+          tenantId,
+          status: 'active',
+        });
+        await userDoc.save();
+      }
+      userId = userDoc._id;
+    }
+
+    const teacher = new Teacher({
+      ...t,
+      tenantId,
+      userId,
+    });
+    await teacher.save();
+    teachers.push(teacher);
+  }
 
   // 2. Seed Students
   const studentsData = [
@@ -175,4 +207,30 @@ export async function seedOrganizationData(tenantId: mongoose.Types.ObjectId) {
     });
   }
   await Fee.insertMany(feesRecords);
+
+  // 6. Seed Sessions
+  const sessionDoc = new Session({
+    tenantId,
+    name: '2026-2027',
+    startDate: new Date('2026-01-01'),
+    endDate: new Date('2026-12-31'),
+    status: 'active'
+  });
+  await sessionDoc.save();
+
+  // 7. Seed Sections
+  const sectionsData = [
+    { name: 'A', class: 'A', status: 'active' },
+    { name: 'B', class: 'B', status: 'active' },
+    { name: 'C', class: 'C', status: 'active' },
+    { name: 'D', class: 'D', status: 'active' },
+  ];
+  await Section.insertMany(sectionsData.map(s => ({ ...s, tenantId })));
+
+  // 8. Seed Subject Groups
+  const subjectGroupsData = [
+    { name: 'Science Group', class: 'A', subjects: ['Physics', 'Chemistry', 'Higher Math', 'Biology'], description: 'General Science Stream' },
+    { name: 'General Group', class: 'B', subjects: ['Mathematics', 'English', 'Science', 'ICT'], description: 'General Studies' }
+  ];
+  await SubjectGroup.insertMany(subjectGroupsData.map(sg => ({ ...sg, tenantId })));
 }
