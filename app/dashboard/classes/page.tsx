@@ -170,17 +170,36 @@ export default function ClassesPage() {
           });
         }
 
-        // Create initial General subject group
-        await fetch('/api/subject-groups', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            class: className,
-            name: 'General',
-            subjects: [],
-            description: `General subjects for ${className}`
-          })
-        });
+        // Determine which subject groups to create
+        // Classes 9–12 get Science, Commerce, Arts; all others get General
+        const upperClasses = ['Class 9', 'Class 10', 'Class 11', 'Class 12'];
+        const isUpperClass = upperClasses.includes(className);
+
+        if (isUpperClass) {
+          const groups = [
+            { name: 'Science', subjects: ['Physics', 'Chemistry', 'Biology', 'Higher Mathematics', 'ICT'], description: `Science stream for ${className}` },
+            { name: 'Commerce', subjects: ['Accounting', 'Business Studies', 'Economics', 'Finance & Banking', 'ICT'], description: `Commerce stream for ${className}` },
+            { name: 'Arts', subjects: ['Bangla', 'English', 'History', 'Civics', 'Economics', 'Geography'], description: `Arts stream for ${className}` },
+          ];
+          for (const grp of groups) {
+            await fetch('/api/subject-groups', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ class: className, ...grp })
+            });
+          }
+        } else {
+          await fetch('/api/subject-groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              class: className,
+              name: 'General',
+              subjects: ['Bangla', 'English', 'Mathematics', 'Science', 'Social Studies', 'Religious Studies', 'ICT'],
+              description: `General subjects for ${className}`
+            })
+          });
+        }
 
         resetClassForm();
         fetchAcademics();
@@ -288,6 +307,25 @@ export default function ClassesPage() {
     }
   };
 
+  const handleUpdateSectionTeacher = async (sectionId: string, teacherId: string) => {
+    try {
+      const res = await fetch(`/api/sections?id=${sectionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ classTeacherId: teacherId || null })
+      });
+      if (res.ok) {
+        const dataSec = await (await fetch('/api/sections', { headers: { Authorization: `Bearer ${token}` } })).json();
+        setSections(dataSec.sections || []);
+      }
+    } catch (err) {
+      console.error('Failed to update section teacher:', err);
+    }
+  };
+
   const handleAddSubject = async () => {
     if (!newSubjectName.trim() || !editingClassName) return;
     const subject = newSubjectName.trim();
@@ -352,7 +390,13 @@ export default function ClassesPage() {
       ...sections.map((s) => s.class),
       ...subjectGroups.map((sg) => sg.class),
     ])
-  ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  ).sort((a, b) => {
+    // Numeric sort: extract trailing number so "Class 2" < "Class 10"
+    const numA = parseInt(a.replace(/\D/g, ''), 10);
+    const numB = parseInt(b.replace(/\D/g, ''), 10);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
 
   useEffect(() => {
     if (!loading && typeof window !== 'undefined') {
@@ -503,15 +547,36 @@ export default function ClassesPage() {
 
             {editingClassName && (
               <div className="space-y-3 border-t border-slate-100 dark:border-slate-850 pt-5 max-w-md">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Manage Sections</span>
-                <div className="flex flex-wrap gap-2 min-h-10 p-3 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Manage Sections & Class Teachers</span>
+                <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-800">
                   {editingClassSections.length === 0 ? (
-                    <span className="text-xs text-slate-400 italic">No sections created.</span>
+                    <span className="text-xs text-slate-400 italic p-2 block">No sections created.</span>
                   ) : (
                     editingClassSections.map((sec) => (
-                      <div key={sec._id} className="inline-flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 text-xs px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span>Section {sec.name}</span>
-                        <button type="button" onClick={() => handleDeleteSection(sec._id)} className="text-slate-400 hover:text-rose-500 transition-colors ml-1 font-bold">×</button>
+                      <div key={sec._id} className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 gap-4 shadow-sm">
+                        <span className="font-bold text-sm text-slate-800 dark:text-slate-200">Section {sec.name}</span>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={sec.classTeacherId || ''}
+                            onChange={(e) => handleUpdateSectionTeacher(sec._id, e.target.value)}
+                            className="px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 dark:bg-slate-955 text-slate-700 dark:text-slate-350 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          >
+                            <option value="">No Class Teacher</option>
+                            {allTeachers.map((t) => (
+                              <option key={t._id} value={t._id}>
+                                {t.firstName} {t.lastName} ({t.position || 'Teacher'})
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSection(sec._id)}
+                            className="text-slate-400 hover:text-rose-650 transition-colors p-1"
+                            title="Delete Section"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -634,13 +699,14 @@ export default function ClassesPage() {
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Class Name</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Monthly Fee</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Sections</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Class Teachers</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
                 {classesList.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-slate-455 dark:text-slate-500 text-sm font-semibold">
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-455 dark:text-slate-500 text-sm font-semibold">
                       No classes configured yet.
                     </td>
                   </tr>
@@ -668,6 +734,23 @@ export default function ClassesPage() {
                                 {sec.name}
                               </span>
                             ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex flex-col gap-1">
+                            {classSections.map((sec) => {
+                              const teacher = allTeachers.find((t) => t._id === sec.classTeacherId);
+                              return (
+                                <div key={sec._id} className="flex items-center gap-1.5 text-xs">
+                                  <span className="font-bold text-[9px] px-1 py-0.2 bg-slate-100 dark:bg-slate-800 rounded text-slate-500">
+                                    {sec.name}
+                                  </span>
+                                  <span className="text-slate-600 dark:text-slate-350 font-medium">
+                                    {teacher ? `${teacher.firstName} ${teacher.lastName}` : <span className="text-slate-400 italic text-[11px]">Unassigned</span>}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm flex space-x-3.5">
@@ -792,16 +875,23 @@ export default function ClassesPage() {
 
                 {/* Sections list */}
                 <div>
-                  <h4 className="text-xs font-bold text-slate-450 uppercase tracking-wider mb-2">Sections Configured</h4>
-                  <div className="flex flex-wrap gap-1.5">
+                  <h4 className="text-xs font-bold text-slate-455 uppercase tracking-wider mb-2">Sections Configured</h4>
+                  <div className="flex flex-wrap gap-2">
                     {classSections.length === 0 ? (
                       <span className="text-xs text-slate-400 italic">No sections created.</span>
                     ) : (
-                      classSections.map((sec) => (
-                        <span key={sec._id} className="text-[10px] font-bold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-350 border border-slate-200/50 dark:border-slate-700/50">
-                          Section {sec.name}
-                        </span>
-                      ))
+                      classSections.map((sec) => {
+                        const teacher = allTeachers.find((t) => t._id === sec.classTeacherId);
+                        return (
+                          <span key={sec._id} className="text-[10px] font-bold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-350 border border-slate-200/50 dark:border-slate-700/50 flex items-center gap-1.5 shadow-sm">
+                            <span>Section {sec.name}</span>
+                            <span className="text-slate-300 dark:text-slate-700">|</span>
+                            <span className="text-indigo-650 dark:text-indigo-400 font-bold">
+                              Class Teacher: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned'}
+                            </span>
+                          </span>
+                        );
+                      })
                     )}
                   </div>
                 </div>

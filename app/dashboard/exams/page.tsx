@@ -193,13 +193,22 @@ export default function ExamsPage() {
       ...sections.map((s) => s.class),
       ...subjectGroups.map((sg) => sg.class),
     ])
-  ).filter(Boolean).sort();
+  ).filter(Boolean).sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''), 10);
+    const numB = parseInt(b.replace(/\D/g, ''), 10);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
 
   const getSubjectsForClass = (className: string) => {
     if (!className) return [];
-    const classGroup = subjectGroups.find((sg) => sg.class === className);
-    return classGroup?.subjects || [];
+    // Collect subjects from ALL groups for this class (e.g., Science + Commerce + Arts for Class 9–12)
+    const allSubjectsForClass = subjectGroups
+      .filter((sg) => sg.class === className)
+      .flatMap((sg) => sg.subjects || []);
+    return Array.from(new Set(allSubjectsForClass)).sort();
   };
+
 
   return (
     <div className="space-y-6">

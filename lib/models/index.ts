@@ -376,6 +376,7 @@ const sectionSchema = new mongoose.Schema({
   name: { type: String, required: true },
   class: { type: String, required: true },
   monthlyFee: { type: Number, default: 0 },
+  classTeacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher' },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
@@ -433,4 +434,68 @@ const auditLogSchema = new mongoose.Schema({
 });
 
 export const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);
+
+// Routine Schema
+const routineSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  class: { type: String, required: true },
+  section: { type: String, required: true },
+  subject: { type: String, required: true },
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
+  dayOfWeek: { type: String, enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], required: true },
+  startTime: { type: String, required: true }, // e.g., '09:00'
+  endTime: { type: String, required: true },   // e.g., '09:45'
+  room: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+export const Routine = mongoose.models.Routine || mongoose.model('Routine', routineSchema);
+
+// LeaveRequest Schema
+const leaveRequestSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userEmail: { type: String, required: true },
+  role: { type: String, required: true }, // 'admin', 'teacher', 'staff', 'student'
+  leaveType: { type: String, enum: ['sick', 'casual', 'maternity', 'paternity', 'unpaid', 'other'], required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  reason: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  remarks: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+export const LeaveRequest = mongoose.models.LeaveRequest || mongoose.model('LeaveRequest', leaveRequestSchema);
+
+// FeeCategory Schema
+const feeCategorySchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  name: { type: String, required: true },
+  description: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+export const FeeCategory = mongoose.models.FeeCategory || mongoose.model('FeeCategory', feeCategorySchema);
+
+// FeeAllocation Schema
+const feeAllocationSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  feeCategoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'FeeCategory', required: true },
+  class: { type: String, required: true },
+  amount: { type: Number, required: true },
+  dueDate: { type: Date, required: true },
+  month: { type: String, required: true },
+  year: { type: Number, required: true },
+  description: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const FeeAllocation = mongoose.models.FeeAllocation || mongoose.model('FeeAllocation', feeAllocationSchema);
+
+
 

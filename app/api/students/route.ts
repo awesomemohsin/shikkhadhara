@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Student, Section, Fee } from '@/lib/models';
+import dbConnect from '@/lib/mongodb';
+import { Student, Section, Fee, Parent } from '@/lib/models';
 import { getTenantContext } from '@/lib/tenant-context';
 import { TenantQuery } from '@/lib/db/tenant-query';
 import { validateRequestAccess, Role } from '@/lib/auth/rbac';
@@ -8,6 +9,8 @@ import { logAction } from '@/lib/audit-logger';
 
 export async function GET(request: NextRequest) {
   try {
+    await dbConnect();
+
     const tenantContext = await getTenantContext(request);
     if (!tenantContext) {
       return NextResponse.json({ message: 'Tenant context unresolved' }, { status: 400 });
@@ -25,11 +28,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const { role, tenantId: tokenTenantId, organizationId: tokenOrgId } = decoded;
+    const { role, tenantId: tokenTenantId, organizationId: tokenOrgId, userId } = decoded;
     const userTenantId = tokenTenantId || tokenOrgId;
 
-    // Both teachers and admins can view students
-    if (!validateRequestAccess(role, userTenantId, Role.TEACHER, headerTenantId)) {
+    // Permit STUDENT and above roles
+    if (!validateRequestAccess(role, userTenantId, Role.STUDENT, headerTenantId)) {
       return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
     }
 
@@ -40,6 +43,17 @@ export async function GET(request: NextRequest) {
     let query: any = {};
     if (class_) query.class = class_;
     if (status) query.status = status;
+
+    // Enforce role-based strict scoping
+    if (role === 'student') {
+      query.userId = userId;
+    } else if (role === 'parent') {
+      const parentDoc = await TenantQuery.findOne(Parent, headerTenantId, { userId });
+      if (!parentDoc) {
+        return NextResponse.json({ students: [] });
+      }
+      query._id = { $in: parentDoc.childrenIds };
+    }
 
     const students = await TenantQuery.find(Student, headerTenantId, query, null, { sort: { firstName: 1 } });
     return NextResponse.json({ students });

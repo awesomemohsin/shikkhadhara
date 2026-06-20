@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/store';
 import { useTenantSlug } from '@/lib/hooks/use-tenant-slug';
 import { FeesChart, StudentsChart } from '@/components/dashboard/charts';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Users,
   UserCheck,
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const tenant = useAuthStore((state) => state.tenant);
   const token = useAuthStore((state) => state.token);
   const tenantSlug = useTenantSlug();
+  const router = useRouter();
 
   const [stats, setStats] = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
@@ -47,6 +49,16 @@ export default function DashboardPage() {
     }
     return tenantSlug ? `/${tenantSlug}${href}` : href;
   };
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'student') {
+        router.push(getHref('/dashboard/student-portal'));
+      } else if (user.role === 'parent') {
+        router.push(getHref('/dashboard/parent-portal'));
+      }
+    }
+  }, [user, tenantSlug]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {

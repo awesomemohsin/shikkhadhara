@@ -118,7 +118,12 @@ export default function AttendancePage() {
       ...sections.map((s) => s.class),
       ...subjectGroups.map((sg) => sg.class),
     ])
-  ).filter(Boolean).sort();
+  ).filter(Boolean).sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''), 10);
+    const numB = parseInt(b.replace(/\D/g, ''), 10);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
 
   if (!isAuthorized) {
     return (

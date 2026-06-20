@@ -25,13 +25,17 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { label: 'Dashboard', icon: BarChart3, href: '/dashboard', roles: ['owner', 'admin', 'teacher'] },
+  { label: 'Dashboard', icon: BarChart3, href: '/dashboard', roles: ['owner', 'admin', 'teacher', 'student', 'parent'] },
   { label: 'Tenant Manager', icon: Layers, href: '/dashboard/tenants', roles: ['owner'] },
+  { label: 'Student Portal', icon: Users, href: '/dashboard/student-portal', roles: ['student'] },
+  { label: 'Parent Portal', icon: Users, href: '/dashboard/parent-portal', roles: ['parent'] },
   { label: 'Classes & Subjects', icon: BookOpen, href: '/dashboard/classes', roles: ['admin'] },
   { label: 'Students', icon: Users, href: '/dashboard/students', roles: ['admin', 'teacher'] },
   { label: 'Staffs', icon: Briefcase, href: '/dashboard/staffs', roles: ['admin'] },
   { label: 'Attendance', icon: Calendar, href: '/dashboard/attendance', roles: ['admin', 'teacher'] },
+  { label: 'Class Routine', icon: Calendar, href: '/dashboard/routines', roles: ['admin', 'teacher', 'student', 'parent'] },
   { label: 'Exams', icon: BookOpen, href: '/dashboard/exams', roles: ['admin', 'teacher'] },
+  { label: 'Leaves Management', icon: FileText, href: '/dashboard/leaves', roles: ['admin', 'teacher', 'staff'] },
   { label: 'Fees', icon: DollarSign, href: '/dashboard/fees', roles: ['admin'] },
   { label: 'Salaries', icon: Layers, href: '/dashboard/salaries', roles: ['admin'] },
   { label: 'Inventory', icon: Archive, href: '/dashboard/inventory', roles: ['admin', 'teacher'] },
