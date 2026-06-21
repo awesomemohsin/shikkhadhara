@@ -62,18 +62,57 @@ const studentSchema = new mongoose.Schema({
   tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   enrollmentId: { type: String, unique: true, sparse: true },
+  admissionNo: String,
+  admissionDate: Date,
   firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
+  lastName: String,
   email: String,
   phone: String,
   dateOfBirth: Date,
   gender: { type: String, enum: ['male', 'female', 'other'] },
+  bloodGroup: String,
+  category: String,
+  religion: String,
+  caste: String,
+  mobileNumber: String,
+  nidNo: String,
+  house: String,
+  height: Number,
+  weight: Number,
+
+  // Address Details
   address: String,
   city: String,
+  state: String,
+  pincode: String,
   country: String,
+
+  // Parent/Guardian Info
+  fatherName: String,
+  fatherPhone: String,
+  fatherOccupation: String,
+  motherName: String,
+  motherPhone: String,
+  motherOccupation: String,
   guardianName: String,
   guardianPhone: String,
   guardianEmail: String,
+  guardianOccupation: String,
+  guardianAddress: String,
+  relationWithStudent: String,
+  fatherNidNo: String,
+  motherNidNo: String,
+
+  // Uploaded Files (paths)
+  studentPhoto: String,
+  fatherPhoto: String,
+  motherPhoto: String,
+  guardianPhoto: String,
+  studentNidCard: String,
+  fatherNidCard: String,
+  motherNidCard: String,
+  birthCertificate: String,
+
   class: { type: String, required: true },
   section: String,
   subjectGroup: String,
@@ -86,6 +125,7 @@ const studentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
+
 
 // Teacher Schema
 const teacherSchema = new mongoose.Schema({
@@ -496,6 +536,80 @@ const feeAllocationSchema = new mongoose.Schema({
 });
 
 export const FeeAllocation = mongoose.models.FeeAllocation || mongoose.model('FeeAllocation', feeAllocationSchema);
+
+// Invitation Schema
+const invitationSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  email: { type: String, required: true },
+  phone: String,
+  role: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'accepted', 'expired'], default: 'pending' },
+  token: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const Invitation = mongoose.models.Invitation || mongoose.model('Invitation', invitationSchema);
+
+// TransportRoute Schema
+const transportRouteSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  routeName: { type: String, required: true },
+  vehicleNumber: { type: String, required: true },
+  driverName: { type: String, required: true },
+  driverPhone: String,
+  routeFare: { type: Number, default: 0 },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const TransportRoute = mongoose.models.TransportRoute || mongoose.model('TransportRoute', transportRouteSchema);
+
+// LibraryBook Schema
+const libraryBookSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  title: { type: String, required: true },
+  author: { type: String, required: true },
+  isbn: String,
+  category: String,
+  quantity: { type: Number, default: 1 },
+  available: { type: Number, default: 1 },
+  rackNo: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const LibraryBook = mongoose.models.LibraryBook || mongoose.model('LibraryBook', libraryBookSchema);
+
+// BookIssue Schema
+const bookIssueSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'LibraryBook', required: true },
+  borrowerType: { type: String, enum: ['Student', 'Teacher', 'Staff'], required: true },
+  borrowerId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  borrowerName: { type: String, required: true },
+  issueDate: { type: Date, default: Date.now },
+  dueDate: { type: Date, required: true },
+  returnDate: Date,
+  status: { type: String, enum: ['issued', 'returned'], default: 'issued' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const BookIssue = mongoose.models.BookIssue || mongoose.model('BookIssue', bookIssueSchema);
+
+// SupportTicket Schema
+const supportTicketSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  subject: { type: String, required: true },
+  message: { type: String, required: true },
+  category: { type: String, default: 'General' },
+  priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+  status: { type: String, enum: ['open', 'closed'], default: 'open' },
+  userEmail: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const SupportTicket = mongoose.models.SupportTicket || mongoose.model('SupportTicket', supportTicketSchema);
+
 
 
 
