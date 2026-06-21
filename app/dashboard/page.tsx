@@ -29,7 +29,9 @@ import {
   Plus,
   TrendingUp,
   LayoutDashboard,
-  ShieldAlert
+  ShieldAlert,
+  Award,
+  Contact
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -42,6 +44,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSchoolProfile, setSelectedSchoolProfile] = useState('main_campus');
 
   const getHref = (href: string) => {
     if (user?.role === 'owner') {
@@ -280,10 +283,10 @@ export default function DashboardPage() {
             <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">My Class Actions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { title: 'Take Student Attendance', desc: 'Record attendance for Class A & B', href: '/dashboard/attendance', icon: CheckSquare },
+                { title: 'Take Student Attendance', desc: 'Record attendance for Class A & B', href: '/dashboard/students/attendance', icon: CheckSquare },
                 { title: 'Record Exam Marks', desc: 'Publish scores for Mathematics', href: '/dashboard/exams', icon: FileText },
                 { title: 'Student Directory', desc: 'View profiles of assigned classes', href: '/dashboard/students', icon: Users },
-                { title: 'Class Timetable', desc: 'Review scheduled lectures', href: '/dashboard/attendance', icon: Calendar }
+                { title: 'Class Timetable', desc: 'Review scheduled lectures', href: '/dashboard/students/attendance', icon: Calendar }
               ].map((link, idx) => {
                 const Icon = link.icon;
                 return (
@@ -314,125 +317,166 @@ export default function DashboardPage() {
       </div>
     );
   }
-
   // 3. SCHOOL ADMINISTRATOR DASHBOARD VIEW
-  const statCards = [
-    { title: 'Total Students', value: stats.totalStudents, icon: Users, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30', href: '/dashboard/students' },
-    { title: 'Total Staff', value: stats.totalStaff, icon: Briefcase, color: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/30', href: '/dashboard/staffs' },
-    { title: 'Classes', value: stats.totalClasses, icon: BookOpen, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30', href: '/dashboard/settings' },
-    { title: 'Expenses', value: `৳${stats.totalExpenses.toLocaleString()}`, icon: DollarSign, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30', href: '/dashboard/fees' },
-    { title: 'Student Attendance', value: stats.studentAttendance, icon: CheckCircle, color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/30', href: '/dashboard/attendance' },
-    { title: 'Staff Attendance', value: stats.staffAttendance, icon: UserCheck, color: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/30', href: '/dashboard/attendance' },
-    { title: 'Help & Support', value: 'Support', icon: HelpCircle, color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30', href: '/dashboard/settings' },
-    { title: 'Attendance Reports', value: 'Reports', icon: FileText, color: 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/30', href: '/dashboard/attendance' },
-    { title: 'Income Reports', value: 'Finance', icon: DollarSign, color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30', href: '/dashboard/fees' },
-    { title: 'Expenses Reports', value: 'Reports', icon: FileText, color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30', href: '/dashboard/fees' },
-    { title: 'QR Attendance', value: 'Scanner', icon: QrCode, color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/30', href: '/dashboard/attendance' },
-    { title: 'Student Leave', value: 'Requests', icon: Calendar, color: 'text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/30', href: '/dashboard/attendance' },
+  
+    const schoolProfiles = [
+    { id: 'main_campus', name: 'ShikkhaDhara Main Campus' },
+    { id: 'branch_dhaka', name: 'ShikkhaDhara Dhaka Branch' }
   ];
 
-  const quickLinks = [
-    { title: 'Student Admission', desc: 'Register new students', icon: Users, href: '/dashboard/students', bg: 'bg-indigo-500/10 text-indigo-500' },
-    { title: 'Staff Management', desc: 'Manage teachers and employees', icon: Briefcase, href: '/dashboard/staffs', bg: 'bg-violet-500/10 text-violet-500' },
-    { title: 'Classes Setup', desc: 'Setup class groups', icon: BookOpen, href: '/dashboard/settings', bg: 'bg-emerald-500/10 text-emerald-500' },
-    { title: 'Session Manager', desc: 'Academic calendar periods', icon: Calendar, href: '/dashboard/settings', bg: 'bg-teal-500/10 text-teal-500' },
-    { title: 'Section Settings', desc: 'Add sections and groups', icon: Layers, href: '/dashboard/settings', bg: 'bg-orange-500/10 text-orange-500' },
-    { title: 'Subject Groups', desc: 'Course catalog groupings', icon: Archive, href: '/dashboard/settings', bg: 'bg-sky-500/10 text-sky-500' },
-    { title: 'Exam Scheduler', desc: 'Create exam timetables', icon: Calendar, href: '/dashboard/exams', bg: 'bg-amber-500/10 text-amber-500' },
-    { title: 'Exam Results', desc: 'Publish academic grades', icon: FileText, href: '/dashboard/exams', bg: 'bg-fuchsia-500/10 text-fuchsia-500' },
-    { title: 'Fees Collection', desc: 'Process tuition invoices', icon: DollarSign, href: '/dashboard/fees', bg: 'bg-green-500/10 text-green-500' },
-    { title: 'Expense Tracker', desc: 'Record bills and payouts', icon: DollarSign, href: '/dashboard/fees', bg: 'bg-rose-500/10 text-rose-500' },
-    { title: 'Income Register', desc: 'Track external earnings', icon: DollarSign, href: '/dashboard/fees', bg: 'bg-cyan-500/10 text-cyan-500' },
-    { title: 'Support Desk', desc: 'Handle system queries', icon: HelpCircle, href: '/dashboard/settings', bg: 'bg-slate-500/10 text-slate-500' },
-    { title: 'Hostel Booking', desc: 'Manage room boarding', icon: Home, href: '/dashboard/hostels', bg: 'bg-blue-500/10 text-blue-500' },
-    { title: 'Library Catalog', desc: 'Track books and inventory', icon: Archive, href: '/dashboard/settings', bg: 'bg-purple-500/10 text-purple-500' },
-    { title: 'Transport Routes', desc: 'Configure school bus plans', icon: Layers, href: '/dashboard/settings', bg: 'bg-yellow-500/10 text-yellow-500' },
-    { title: 'Salaries Pay', desc: 'Staff payroll runs', icon: Layers, href: '/dashboard/salaries', bg: 'bg-indigo-500/10 text-indigo-500' },
-    { title: 'Gallery Showcase', desc: 'View institution records', icon: ImageIcon, href: '/dashboard/gallery', bg: 'bg-pink-500/10 text-pink-500' },
-    { title: 'Notifications', desc: 'Send circulars & alerts', icon: Bell, href: '/dashboard/notifications', bg: 'bg-violet-500/10 text-violet-500' },
+  const planStats = {
+    studentsLimit: 500,
+    studentsUsed: stats.totalStudents,
+    staffLimit: 50,
+    staffUsed: stats.totalStaff,
+  };
+
+  const dashboardKPIs = [
+    { title: 'Total Students', value: stats.totalStudents, icon: Users, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30' },
+    { title: 'Total Staff', value: stats.totalStaff, icon: Briefcase, color: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/30' },
+    { title: 'Classes Setup', value: stats.totalClasses, icon: BookOpen, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30' },
+    { title: 'Student Attendance', value: stats.studentAttendance || '95%', icon: CheckCircle, color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/30' },
+    { title: 'Staff Attendance', value: stats.staffAttendance || '98%', icon: UserCheck, color: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/30' },
+    { title: 'Fee Collection', value: `৳${stats.collectedFees.toLocaleString()}`, icon: DollarSign, color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30' },
+    { title: 'Due Fees', value: `৳${stats.pendingFees.toLocaleString()}`, icon: DollarSign, color: 'text-rose-600 dark:text-rose-455 bg-rose-50 dark:bg-rose-950/30' },
+    { title: 'Income', value: `৳${stats.collectedFees.toLocaleString()}`, icon: DollarSign, color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/30' },
+    { title: 'Expenses', value: `৳${stats.totalExpenses.toLocaleString()}`, icon: DollarSign, color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30' },
+    { title: 'Profit / Loss', value: `৳${(stats.collectedFees - stats.totalExpenses).toLocaleString()}`, icon: DollarSign, color: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/30' },
+    { title: 'Admission Enquiries', value: stats.enquiriesCount || 0, icon: Contact, color: 'text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/30' },
+    { title: 'Leave Requests', value: stats.pendingLeaves || 0, icon: Calendar, color: 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/30' },
+    { title: 'Support Tickets', value: stats.openTickets || 0, icon: HelpCircle, color: 'text-rose-650 dark:text-rose-455 bg-rose-50 dark:bg-rose-950/30' }
+  ];
+
+  const quickActionCards = [
+    { title: 'Add Student', desc: 'Admission register', href: '/dashboard/students/admission', icon: Users, color: 'text-indigo-500 bg-indigo-500/10' },
+    { title: 'Collect Fees', desc: 'Process payment records', href: '/dashboard/fees/collect', icon: DollarSign, color: 'text-green-500 bg-green-500/10' },
+    { title: 'Take Attendance', desc: 'Student class check', href: '/dashboard/students/attendance', icon: CheckSquare, color: 'text-teal-500 bg-teal-500/10' },
+    { title: 'Add Staff', desc: 'Create employee page', href: '/dashboard/staffs/add', icon: Briefcase, color: 'text-violet-500 bg-violet-500/10' },
+    { title: 'Create Exam', desc: 'Schedule evaluation', href: '/dashboard/exams/add', icon: FileText, color: 'text-amber-500 bg-amber-500/10' },
+    { title: 'Send SMS/WhatsApp', desc: 'Broadcast gateway', href: '/dashboard/communication', icon: Bell, color: 'text-rose-500 bg-rose-500/10' },
+    { title: 'Issue Certificate', desc: 'Printable templates', href: '/dashboard/certificates', icon: Award, color: 'text-cyan-500 bg-cyan-500/10' }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="relative bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white overflow-hidden shadow-xl border border-slate-800">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-2">
+      
+      {/* Upper banner section */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        
+        {/* Welcome Block */}
+        <div className="flex-1 relative bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white overflow-hidden shadow-xl border border-slate-800 flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="space-y-2 relative z-10">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 border border-indigo-400/20 rounded-full text-indigo-300 text-xs font-semibold">
               <Sparkles size={14} className="animate-pulse" />
-              SaaS Institution Portal
+              SaaS Institution Dashboard
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Welcome back, {user?.firstName || 'User'}!
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-2">
+              Welcome back, {user?.firstName || 'Admin'}!
             </h1>
-            <p className="text-slate-300 text-sm max-w-xl">
-              You are currently logged into <span className="font-semibold text-indigo-300">{tenant?.name || 'TEST MOHSIN'}</span>. Use the central dashboard to manage administrative workflow.
+            <p className="text-slate-355 text-sm max-w-xl font-medium">
+              Logged into <span className="font-semibold text-indigo-300">{tenant?.name || 'Main Campus'}</span>. Manage operations easily.
             </p>
           </div>
-          <div className="flex items-center gap-3 bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-4 self-start md:self-auto">
-            <Calendar className="text-indigo-400 size-6" />
+          
+          <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-white/10 relative z-10">
             <div>
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Active Academic Year</p>
               <p className="text-sm font-semibold text-white">{stats.activeSession || '2026-2027'}</p>
             </div>
+            <div className="h-6 w-[1px] bg-white/15" />
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Select School Profile</p>
+              <select
+                value={selectedSchoolProfile}
+                onChange={(e) => setSelectedSchoolProfile(e.target.value)}
+                className="bg-slate-900/60 text-xs text-indigo-300 outline-none border border-indigo-500/25 rounded-lg py-1 px-2 font-bold cursor-pointer"
+              >
+                {schoolProfiles.map((prof) => (
+                  <option key={prof.id} value={prof.id} className="bg-slate-955 text-white">{prof.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
+        </div>
+
+        {/* Subscription Limit Gauge */}
+        <div className="w-full lg:w-80 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Subscription Limit Allocation</h3>
+            <p className="text-[11px] text-slate-450 mt-1 font-semibold">Active Plan: Professional Multi-School</p>
+          </div>
+
+          <div className="space-y-3.5 my-4">
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold text-slate-500">
+                <span>STUDENTS</span>
+                <span>{planStats.studentsUsed} / {planStats.studentsLimit}</span>
+              </div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${(planStats.studentsUsed / planStats.studentsLimit) * 100}%` }} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold text-slate-500">
+                <span>STAFF LIMIT</span>
+                <span>{planStats.staffUsed} / {planStats.staffLimit}</span>
+              </div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="h-full bg-indigo-650 rounded-full" style={{ width: `${(planStats.staffUsed / planStats.staffLimit) * 100}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <Link href={getHref('/dashboard/billing')} className="text-center w-full py-2 bg-slate-105 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-350 border">
+            View Billing & Subscription
+          </Link>
         </div>
       </div>
 
-      {/* Top 12 Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {statCards.map((card, idx) => {
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {dashboardKPIs.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <Link
-              key={idx}
-              href={getHref(card.href)}
-              className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-4 hover:shadow-lg dark:hover:shadow-indigo-500/5 transition-all duration-200 hover:-translate-y-0.5 group flex flex-col justify-between h-28"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider line-clamp-1">{card.title}</span>
-                <div className={`${card.color} p-1.5 rounded-lg group-hover:scale-105 transition-transform duration-200`}>
-                  <Icon size={16} />
-                </div>
+            <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-805 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider truncate">{card.title}</p>
+                <p className="text-lg font-black text-slate-800 dark:text-white mt-1.5 tracking-tight">{card.value}</p>
               </div>
-              <div className="mt-2 flex items-end justify-between">
-                <span className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white tracking-tight">{card.value}</span>
-                <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform duration-200" />
+              <div className={`${card.color} p-2 rounded-xl shrink-0 ml-2`}>
+                <Icon size={16} />
               </div>
-            </Link>
+            </div>
           );
         })}
       </div>
 
-      {/* Main Sections Layout */}
+      {/* Action shortcuts & Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Side: 18 Quick Links Grid */}
+        
+        {/* Left column */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800 dark:text-white">Quick Administration Links</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Quick shortcuts to access modules and directories</p>
-              </div>
-              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">18 Modules Configured</span>
-            </div>
-
+          
+          {/* Quick Actions Grid */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+            <h3 className="font-bold text-slate-850 dark:text-white text-base mb-4">Quick Executive Actions</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {quickLinks.map((link, idx) => {
-                const Icon = link.icon;
+              {quickActionCards.map((act, idx) => {
+                const Icon = act.icon;
                 return (
                   <Link
                     key={idx}
-                    href={getHref(link.href)}
-                    className="flex items-start gap-3 p-3.5 rounded-2xl border border-slate-100 hover:border-slate-200 dark:border-slate-800/50 dark:hover:border-slate-700 bg-slate-50/50 hover:bg-slate-50 dark:bg-slate-950/30 dark:hover:bg-slate-950/60 transition-all duration-150 group"
+                    href={getHref(act.href)}
+                    className="flex items-start gap-3.5 p-3.5 rounded-2xl border border-slate-100 hover:border-slate-250 dark:border-slate-850/60 dark:hover:border-slate-800 bg-slate-50/50 hover:bg-slate-50 dark:bg-slate-955/20 dark:hover:bg-slate-955/40 transition-all duration-150 group"
                   >
-                    <div className={`${link.bg} p-2 rounded-xl group-hover:scale-105 transition-transform duration-150`}>
+                    <div className={`${act.color} p-2.5 rounded-xl group-hover:scale-105 transition-transform duration-150`}>
                       <Icon size={18} />
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-150 truncate">{link.title}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5 truncate">{link.desc}</p>
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-800 dark:text-slate-200 group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors truncate">{act.title}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 truncate">{act.desc}</p>
                     </div>
                   </Link>
                 );
@@ -440,67 +484,59 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Analytics Chart */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800 dark:text-white">Fee Collection Analytics</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Monthly summary of tuition and utility fees</p>
-              </div>
-              <div className="flex gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-lg">
-                  Collected: ৳{stats.collectedFees.toLocaleString()}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded-lg">
-                  Pending: ৳{stats.pendingFees.toLocaleString()}
-                </span>
-              </div>
+          {/* Fee Collections charts */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-slate-850 dark:text-white text-base">Monthly Billing Performance</h3>
+              <span className="text-[10px] font-bold bg-green-500/10 text-green-600 px-3 py-1 rounded-full uppercase">Collected: ৳{stats.collectedFees.toLocaleString()}</span>
             </div>
             <FeesChart />
           </div>
         </div>
 
-        {/* Right Side: Setup Progress & Charts */}
+        {/* Right Column: Pending Tasks & Help Desk */}
         <div className="space-y-6">
-          {/* Setup / Onboarding Checklist */}
-          <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/20 dark:from-indigo-950/20 dark:to-purple-950/10 border border-indigo-100/50 dark:border-indigo-950/40 rounded-3xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <CheckSquare className="text-indigo-600 dark:text-indigo-400 size-5" />
-              <h2 className="text-md font-bold text-slate-800 dark:text-white">Getting Started Checklist</h2>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Complete these settings to fully initialize the institution configuration.
-            </p>
-
-            <div className="space-y-3.5">
-              {[
-                { title: 'Create Academic Session', completed: true },
-                { title: 'Configure Classes & Sections', completed: true },
-                { title: 'Add Subject Groups', completed: true },
-                { title: 'Register Students & Admins', completed: true },
-                { title: 'Setup Fee Collection Plans', completed: false }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-250/30 dark:border-slate-800/40 rounded-xl p-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`size-5 rounded-full flex items-center justify-center border ${item.completed ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-700'}`}>
-                      {item.completed && <span className="text-[10px]">✓</span>}
+          
+          {/* Recent Activities Panel */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+            <h3 className="font-bold text-slate-805 dark:text-slate-202 text-sm border-b pb-2 mb-4">Recent Activities Log</h3>
+            <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+              {!stats.recentActivities || stats.recentActivities.length === 0 ? (
+                <p className="text-xs text-slate-400 italic py-4 text-center">No recent logs recorded in active session.</p>
+              ) : (
+                stats.recentActivities.map((log: any, idx: number) => (
+                  <div key={idx} className="flex items-start justify-between bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 p-3 rounded-xl gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase text-indigo-650 bg-indigo-50 dark:bg-indigo-950 dark:text-indigo-400 px-1.5 py-0.2 rounded mr-1.5">{log.action}</span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase">{log.entity}</span>
+                      <p className="text-[10px] text-slate-600 dark:text-slate-405 font-semibold mt-1 truncate">{log.details}</p>
                     </div>
-                    <span className={`text-xs font-semibold ${item.completed ? 'text-slate-450 line-through' : 'text-slate-700 dark:text-slate-300'}`}>{item.title}</span>
+                    <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap shrink-0">
+                      {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  {!item.completed && (
-                    <Link href={getHref('/dashboard/settings')} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
-                      Configure
-                    </Link>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
-          {/* Students Distribution Chart */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm">
-            <h2 className="text-md font-bold text-slate-800 dark:text-white mb-4">Class-wise Students Overview</h2>
-            <StudentsChart />
+          {/* Help & Support Ticket Card */}
+          <div className="bg-gradient-to-br from-indigo-50/55 to-violet-50/25 dark:from-indigo-950/20 dark:to-violet-950/15 border border-indigo-100/50 dark:border-indigo-950/40 rounded-3xl p-6 shadow-sm space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-850 dark:text-white text-sm">Help & Support Desk</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed font-semibold">
+                Require direct support? Connect with our global SaaS technical panel immediately via direct support desk.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+              <Link href={getHref('/dashboard/support')} className="flex items-center justify-center gap-1.5 p-2.5 bg-indigo-650 text-white rounded-xl shadow-sm hover:bg-indigo-755 transition-colors">
+                <span>Support Desk</span>
+              </Link>
+              <a href="mailto:support@shikkhadhara.com" className="flex items-center justify-center gap-1.5 p-2.5 bg-slate-105 border hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl shadow-sm transition-colors">
+                <span>Email Support</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>

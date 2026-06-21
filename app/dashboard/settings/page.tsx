@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Settings as SettingsIcon, Save, Plus, Trash2, BookOpen, Layers, X } from 'lucide-react';
+import { Settings as SettingsIcon, Save, KeyRound, Briefcase, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/dashboard/page-header';
 
 export default function SettingsPage() {
   const token = useAuthStore((state) => state.token);
@@ -83,49 +84,12 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setSuccess('Profile updated successfully!');
-        setUser(data.user); // update client state globally
-        
-        // Save updated user to localstorage
+        setSuccess('Profile details updated successfully!');
+        setUser(data.user);
         localStorage.setItem('user', JSON.stringify(data.user));
       } else {
         const errData = await response.json();
         throw new Error(errData.message || 'Failed to update profile');
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await fetch('/api/organization', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: organizationData.name,
-          timezone: organizationData.timezone,
-          currency: organizationData.currency,
-          language: organizationData.language,
-        }),
-      });
-
-      if (response.ok) {
-        setSuccess('Organization settings updated successfully!');
-        fetchOrganization();
-      } else {
-        const errData = await response.json();
-        throw new Error(errData.message || 'Failed to update organization settings');
       }
     } catch (err: any) {
       setError(err.message);
@@ -160,7 +124,7 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        setSuccess('Password changed successfully!');
+        setSuccess('Password updated successfully!');
         setSecurityData({
           currentPassword: '',
           newPassword: '',
@@ -178,124 +142,120 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Settings</h1>
-        <p className="text-gray-600 dark:text-slate-400 mt-1">Manage your account and organization settings</p>
-      </div>
+    <div className="space-y-6 font-sans">
+      <PageHeader
+        title="Account & System Settings"
+        description="Modify your personal profile details, organization settings, preferences, and secure credentials."
+        breadcrumbs={[{ label: 'Settings' }]}
+      />
 
       {success && (
-        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
-          <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">{success}</p>
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl text-xs font-semibold text-center max-w-xl">
+          {success}
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-4">
-          <p className="text-sm text-rose-600 dark:text-rose-450 font-semibold">{error}</p>
+        <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-455 rounded-2xl text-xs font-semibold text-center max-w-xl">
+          {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Settings Navigation */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-border/40 h-fit">
+        {/* Navigation Sidebar */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-805 rounded-2xl p-4 shadow-xs h-fit">
           <nav className="space-y-1.5">
             {[
-              { id: 'profile', label: 'Profile Settings' },
-              { id: 'organization', label: 'Organization' },
-              { id: 'security', label: 'Security' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id as any);
-                  setError('');
-                  setSuccess('');
-                }}
-                className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-150 text-sm font-semibold ${
-                  activeTab === item.id
-                    ? 'bg-indigo-50/70 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-l-2 border-indigo-600 dark:border-indigo-500 shadow-[inset_1px_0_0_rgba(99,102,241,0.05)]'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+              { id: 'profile', label: 'Profile Parameters', icon: User },
+              { id: 'organization', label: 'Organization Config', icon: Briefcase },
+              { id: 'security', label: 'Security & Access', icon: KeyRound },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id as any);
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-155 text-xs font-bold flex items-center space-x-2.5 cursor-pointer ${
+                    activeTab === item.id
+                      ? 'bg-blue-500/10 text-blue-650 dark:text-blue-400 border-l-2 border-blue-550 font-bold shadow-[inset_1px_0_0_rgba(59,130,246,0.05)]'
+                      : 'text-slate-500 hover:bg-slate-100/60 hover:text-slate-900 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon size={14} className="shrink-0 text-slate-400" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
           </nav>
         </div>
 
-        {/* Settings Forms container */}
+        {/* Configurations Forms Container */}
         <div className="lg:col-span-3">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-6 border border-border/40">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-805 rounded-3xl p-6 sm:p-8 shadow-xs">
             {activeTab === 'profile' && (
               <form onSubmit={handleSaveProfile} className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
-                    Profile Settings
-                  </h2>
+                  <h3 className="font-extrabold text-slate-850 dark:text-white text-base border-b pb-2 mb-4">
+                    Modify Profile Settings
+                  </h3>
+                  
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                          First Name
-                        </label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">First Name</label>
                         <input
                           type="text"
                           value={profileData.firstName}
-                          onChange={(e) =>
-                            setProfileData({ ...profileData, firstName: e.target.value })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                          Last Name
-                        </label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Last Name</label>
                         <input
                           type="text"
                           value={profileData.lastName}
-                          onChange={(e) =>
-                            setProfileData({ ...profileData, lastName: e.target.value })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                          Email address
-                        </label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address (Read-only)</label>
                         <input
                           type="email"
                           value={profileData.email}
                           disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
+                          className="w-full px-3.5 py-2.5 bg-slate-100/50 dark:bg-slate-950 border border-slate-200 border-dashed text-slate-400 rounded-xl text-sm cursor-not-allowed"
                         />
+                        <p className="text-[10px] text-slate-400 mt-1.5 font-semibold">Email address can only be changed by system owners.</p>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                          Phone Number
-                        </label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Contact Phone</label>
                         <input
                           type="tel"
                           value={profileData.phone}
-                          onChange={(e) =>
-                            setProfileData({ ...profileData, phone: e.target.value })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                         />
                       </div>
                     </div>
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center space-x-2 mt-4"
-                    >
-                      <Save size={18} />
-                      <span>{loading ? 'Saving...' : 'Save Profile Changes'}</span>
-                    </Button>
+
+                    <div className="pt-2">
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold px-6 py-2.5 shadow-xs flex items-center space-x-1.5 text-xs"
+                      >
+                        <Save size={14} />
+                        <span>{loading ? 'Saving Profile...' : 'Save Profile Changes'}</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </form>
@@ -304,65 +264,58 @@ export default function SettingsPage() {
             {activeTab === 'organization' && (
               <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
-                    Organization Settings
-                  </h2>
+                  <h3 className="font-extrabold text-slate-850 dark:text-white text-base border-b pb-2 mb-4">
+                    Organization Profile
+                  </h3>
+
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                        Organization Name
-                      </label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Organization Name</label>
                       <input
                         type="text"
                         value={organizationData.name}
                         disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
+                        className="w-full px-3.5 py-2.5 bg-slate-100/50 dark:bg-slate-950 border border-slate-200 border-dashed text-slate-400 rounded-xl text-sm cursor-not-allowed"
                         required
                       />
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                          Timezone
-                        </label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Default Timezone</label>
                         <select
                           value={organizationData.timezone}
                           disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
+                          className="w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed"
                         >
                           <option value="Asia/Dhaka">Asia/Dhaka (GMT+6)</option>
                           <option value="UTC">UTC (GMT+0)</option>
-                          <option value="America/New_York">America/New_York (EST)</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                          Currency
-                        </label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Billing Currency</label>
                         <select
                           value={organizationData.currency}
                           disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
+                          className="w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed"
                         >
                           <option value="BDT">BDT (৳)</option>
                           <option value="USD">USD ($)</option>
-                          <option value="EUR">EUR (€)</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                          Language
-                        </label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">System Language</label>
                         <select
                           value={organizationData.language}
                           disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:bg-slate-950 text-slate-400 cursor-not-allowed border-dashed"
+                          className="w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed"
                         >
                           <option value="en">English (US)</option>
                           <option value="bn">Bengali (BD)</option>
                         </select>
                       </div>
                     </div>
+                    <p className="text-[10px] text-slate-400 font-semibold mt-1">SaaS parameters are managed in organization setup. Contact system administrator for details.</p>
                   </div>
                 </div>
               </form>
@@ -371,69 +324,55 @@ export default function SettingsPage() {
             {activeTab === 'security' && (
               <form onSubmit={handleChangePassword} className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
-                    Security Settings
-                  </h2>
+                  <h3 className="font-extrabold text-slate-850 dark:text-white text-base border-b pb-2 mb-4">
+                    Change Account Password
+                  </h3>
+
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                        Current Password
-                      </label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Current Password</label>
                       <input
                         type="password"
+                        placeholder="••••••••"
                         value={securityData.currentPassword}
-                        onChange={(e) =>
-                          setSecurityData({
-                            ...securityData,
-                            currentPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onChange={(e) => setSecurityData({ ...securityData, currentPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                        New Password
-                      </label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">New Password</label>
                       <input
                         type="password"
+                        placeholder="Min. 8 characters"
                         value={securityData.newPassword}
-                        onChange={(e) =>
-                          setSecurityData({
-                            ...securityData,
-                            newPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onChange={(e) => setSecurityData({ ...securityData, newPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">
-                        Confirm New Password
-                      </label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Confirm New Password</label>
                       <input
                         type="password"
+                        placeholder="••••••••"
                         value={securityData.confirmPassword}
-                        onChange={(e) =>
-                          setSecurityData({
-                            ...securityData,
-                            confirmPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onChange={(e) => setSecurityData({ ...securityData, confirmPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                         required
                       />
                     </div>
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center space-x-2 mt-4"
-                    >
-                      <Save size={18} />
-                      <span>{loading ? 'Changing...' : 'Change Password'}</span>
-                    </Button>
+
+                    <div className="pt-2">
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold px-6 py-2.5 shadow-xs flex items-center space-x-1.5 text-xs"
+                      >
+                        <Save size={14} />
+                        <span>{loading ? 'Updating Password...' : 'Update Password'}</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </form>
