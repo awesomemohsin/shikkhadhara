@@ -31,53 +31,48 @@ export async function POST(request: NextRequest) {
     let tenantId = providedTenantId;
     if (organizationName) {
       const authHeader = request.headers.get('authorization');
-      if (!authHeader) {
-        return NextResponse.json(
-          { message: 'Unauthorized: Owner token required to create new tenants' },
-          { status: 401 }
-        );
-      }
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = verifyToken(token);
+        if (decoded && decoded.email === 'mohsindude5@gmail.com' && decoded.role === 'owner') {
+          // Generate subdomain slug from name
+          const subdomain = organizationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      const token = authHeader.replace('Bearer ', '');
-      const decoded = verifyToken(token);
-      if (!decoded || decoded.email !== 'mohsindude5@gmail.com' || decoded.role !== 'owner') {
-        return NextResponse.json(
-          { message: 'Forbidden: Only the owner (mohsindude5@gmail.com) can create new tenants' },
-          { status: 403 }
-        );
-      }
+          // Create tenant
+          const tenant = new Tenant({
+            name: organizationName,
+            subdomain,
+            type: 'school',
+            email,
+            settings: {
+              timezone: 'Asia/Dhaka',
+              currency: 'BDT',
+              language: 'en',
+            },
+          });
+          await tenant.save();
+          tenantId = tenant._id;
 
-      // Generate subdomain slug from name
-      const subdomain = organizationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
-      // Create tenant
-      const tenant = new Tenant({
-        name: organizationName,
-        subdomain,
-        type: 'school',
-        email,
-        settings: {
-          timezone: 'Asia/Dhaka',
-          currency: 'BDT',
-          language: 'en',
-        },
-      });
-      await tenant.save();
-      tenantId = tenant._id;
-
-      // Auto-seed premium demo data for this tenant
-      try {
-        await seedOrganizationData(tenant._id);
-      } catch (seedErr) {
-        console.error('Seeding tenant data failed:', seedErr);
+          // Auto-seed premium demo data for this tenant
+          try {
+            await seedOrganizationData(tenant._id);
+          } catch (seedErr) {
+            console.error('Seeding tenant data failed:', seedErr);
+          }
+        }
       }
     }
 
-    // Fallback: If no tenant is created/provided, resolve to the default tenant
+    // Fallback: If no tenant is created/provided, resolve to the header tenant or default tenant
     if (!tenantId) {
-      const defaultTenant = await Tenant.findOne({ subdomain: 'shikkhadhara' });
-      if (defaultTenant) {
-        tenantId = defaultTenant._id;
+      const headerTenantId = request.headers.get('x-tenant-id');
+      if (headerTenantId) {
+        tenantId = headerTenantId;
+      } else {
+        const defaultTenant = await Tenant.findOne({ subdomain: 'shikkhadhara' });
+        if (defaultTenant) {
+          tenantId = defaultTenant._id;
+        }
       }
     }
 

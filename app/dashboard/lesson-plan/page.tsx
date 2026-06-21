@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { ClipboardList, Plus, Star, CheckCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ClipboardList, Plus, Star, CheckCircle, RefreshCw, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/lib/store';
 
 export default function LessonPlanPage() {
-  const [lessons, setLessons] = useState<any[]>([
-    { id: '1', className: 'Class 8', subject: 'General Mathematics', topic: 'Algebraic Expressions & Identities', status: 'completed', completion: 100 },
-    { id: '2', className: 'Class 8', subject: 'General Science', topic: 'Chapter 4: Cell Structure & Functions', status: 'in_progress', completion: 60 },
-    { id: '3', className: 'Class 9', subject: 'English Grammar', topic: 'Tense & Clause Structure', status: 'pending', completion: 0 }
-  ]);
+  const { token } = useAuthStore();
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [className, setClassName] = useState('8');
   const [subject, setSubject] = useState('Mathematics');
@@ -17,36 +17,115 @@ export default function LessonPlanPage() {
   const [status, setStatus] = useState('pending');
   const [completion, setCompletion] = useState(0);
 
-  const handleCreateLesson = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchLessons();
+  }, []);
+
+  const fetchLessons = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/lesson-plan', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLessons(data.lessons || []);
+      } else {
+        const errData = await response.json();
+        setError(errData.message || 'Failed to fetch lesson plan topics');
+      }
+    } catch (err) {
+      setError('Connection failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateLesson = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic || !subject) return;
+    setError('');
 
-    const newLesson = {
-      id: Date.now().toString(),
-      className: `Class ${className}`,
-      subject,
-      topic,
-      status,
-      completion: status === 'completed' ? 100 : status === 'pending' ? 0 : completion
-    };
+    try {
+      const response = await fetch('/api/lesson-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          class: `Class ${className}`,
+          subject,
+          topic,
+          status,
+          completion: status === 'completed' ? 100 : status === 'pending' ? 0 : completion
+        })
+      });
 
-    setLessons([...lessons, newLesson]);
-    setTopic('');
-    setCompletion(0);
+      if (response.ok) {
+        setTopic('');
+        setCompletion(0);
+        fetchLessons();
+      } else {
+        const errData = await response.json();
+        setError(errData.message || 'Failed to record curriculum topic');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    }
   };
 
-  const handleUpdateStatus = (id: string, newStat: string) => {
-    setLessons(lessons.map((les) =>
-      les.id === id ? {
-        ...les,
-        status: newStat,
-        completion: newStat === 'completed' ? 100 : newStat === 'pending' ? 0 : les.completion === 100 ? 50 : les.completion
-      } : les
-    ));
+  const handleUpdateStatus = async (id: string, newStat: string) => {
+    setError('');
+    const target = lessons.find((l) => l._id === id);
+    if (!target) return;
+
+    const newComp = newStat === 'completed' ? 100 : newStat === 'pending' ? 0 : target.completion === 100 ? 50 : target.completion;
+
+    try {
+      const response = await fetch(`/api/lesson-plan?id=${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: newStat,
+          completion: newComp
+        })
+      });
+
+      if (response.ok) {
+        fetchLessons();
+      } else {
+        const errData = await response.json();
+        setError(errData.message || 'Failed to update topic status');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setLessons(lessons.filter((l) => l.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this curriculum topic?')) return;
+    setError('');
+
+    try {
+      const response = await fetch(`/api/lesson-plan?id=${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        fetchLessons();
+      } else {
+        const errData = await response.json();
+        setError(errData.message || 'Failed to remove topic');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    }
   };
 
   return (

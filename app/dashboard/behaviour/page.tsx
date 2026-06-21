@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { Heart, Plus, Users, ShieldAlert, Award, Star, Bell, Search, Filter } from 'lucide-react';
+import { Heart, Plus, Users, ShieldAlert, Award, Star, Bell, Search, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function BehaviourRecordsPage() {
@@ -10,9 +10,9 @@ export default function BehaviourRecordsPage() {
   
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingLogs, setLoadingLogs] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Custom states for behaviour logs in local storage
   const [logs, setLogs] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [pointType, setPointType] = useState<'positive' | 'negative'>('positive');
@@ -22,21 +22,30 @@ export default function BehaviourRecordsPage() {
   const [notifyingParent, setNotifyingParent] = useState(true);
   const [alertMsg, setAlertMsg] = useState('');
 
-  useEffect(() => {
-    fetchStudents();
-    // Load local storage behavior logs
-    const savedLogs = localStorage.getItem('behaviour_logs');
-    if (savedLogs) {
-      setLogs(JSON.parse(savedLogs));
-    } else {
-      const defaultLogs = [
-        { id: '1', name: 'Tanvir Rahman', roll: '01', type: 'positive', points: 10, title: 'Outstanding Leadership in Science Fair', date: new Date().toLocaleDateString(), notify: true },
-        { id: '2', name: 'Maimuna Islam', roll: '03', type: 'negative', points: -5, title: 'Late Assignment Submission twice', date: new Date().toLocaleDateString(), notify: true }
-      ];
-      setLogs(defaultLogs);
-      localStorage.setItem('behaviour_logs', JSON.stringify(defaultLogs));
+  const fetchLogs = async () => {
+    if (!token) return;
+    setLoadingLogs(true);
+    try {
+      const response = await fetch('/api/behaviour', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.logs || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingLogs(false);
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchStudents();
+      fetchLogs();
+    }
+  }, [token]);
 
   const fetchStudents = async () => {
     try {
@@ -54,40 +63,50 @@ export default function BehaviourRecordsPage() {
     }
   };
 
-  const handleAddIncident = (e: React.FormEvent) => {
+  const handleAddIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudentId || !incidentTitle) return;
 
     const student = students.find((s) => s._id === selectedStudentId);
     const studentName = student ? `${student.firstName} ${student.lastName || ''}` : 'Unknown Student';
     const rollNo = student ? student.rollNumber || 'N/A' : 'N/A';
+    const studentClass = student ? student.class || 'N/A' : 'N/A';
 
-    const newLog = {
-      id: Date.now().toString(),
-      name: studentName,
-      roll: rollNo,
-      type: pointType,
-      points: pointType === 'positive' ? points : -points,
-      title: incidentTitle,
-      date: new Date().toLocaleDateString(),
-      notify: notifyingParent
-    };
+    try {
+      const response = await fetch('/api/behaviour', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          studentName,
+          studentRoll: rollNo,
+          class: studentClass,
+          incident: incidentTitle,
+          type: pointType === 'positive' ? 'Positive' : 'Negative',
+          points: pointType === 'positive' ? `+${points}` : `-${points}`,
+        })
+      });
 
-    const updatedLogs = [newLog, ...logs];
-    setLogs(updatedLogs);
-    localStorage.setItem('behaviour_logs', JSON.stringify(updatedLogs));
-
-    setIncidentTitle('');
-    setRemarks('');
-    setSelectedStudentId('');
-    setAlertMsg('Incident logged and notification triggered!');
-    setTimeout(() => setAlertMsg(''), 3000);
+      if (response.ok) {
+        setIncidentTitle('');
+        setRemarks('');
+        setSelectedStudentId('');
+        setAlertMsg('Incident logged and notification triggered!');
+        setTimeout(() => setAlertMsg(''), 3000);
+        fetchLogs();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const filteredLogs = logs.filter(
     (l) =>
-      l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.title.toLowerCase().includes(searchQuery.toLowerCase())
+      (l.studentName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.incident || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -122,7 +141,7 @@ export default function BehaviourRecordsPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Positive Commendations</p>
-            <p className="text-2xl font-extrabold text-emerald-600 mt-1">{logs.filter((l) => l.type === 'positive').length}</p>
+            <p className="text-2xl font-extrabold text-emerald-600 mt-1">{logs.filter((l) => l.type?.toLowerCase() === 'positive').length}</p>
           </div>
           <div className="bg-emerald-500/10 text-emerald-500 p-3 rounded-xl">
             <Star size={20} />
@@ -131,7 +150,7 @@ export default function BehaviourRecordsPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Negative Warnings</p>
-            <p className="text-2xl font-extrabold text-rose-600 mt-1">{logs.filter((l) => l.type === 'negative').length}</p>
+            <p className="text-2xl font-extrabold text-rose-600 mt-1">{logs.filter((l) => l.type?.toLowerCase() === 'negative').length}</p>
           </div>
           <div className="bg-rose-500/10 text-rose-500 p-3 rounded-xl">
             <ShieldAlert size={20} />
@@ -269,32 +288,35 @@ export default function BehaviourRecordsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                {filteredLogs.length === 0 ? (
+                {loadingLogs ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-slate-450 font-medium">
+                      <RefreshCw className="animate-spin inline-block mr-2 text-indigo-650" size={16} />
+                      Loading logs...
+                    </td>
+                  </tr>
+                ) : filteredLogs.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-slate-400">No behaviour incidents recorded.</td>
                   </tr>
                 ) : (
                   filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
+                    <tr key={log._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-slate-800 dark:text-slate-200">{log.name}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Roll: {log.roll}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{log.studentName}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Roll: {log.studentRoll}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-slate-700 dark:text-slate-350">{log.title}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{log.date}</p>
+                        <p className="font-semibold text-slate-700 dark:text-slate-350">{log.incident}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{new Date(log.createdAt).toLocaleDateString()}</p>
                       </td>
-                      <td className={`px-6 py-4 text-right font-extrabold ${log.points > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {log.points > 0 ? `+${log.points}` : log.points}
+                      <td className={`px-6 py-4 text-right font-extrabold ${log.points.toString().includes('+') || parseFloat(log.points) > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {log.points}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {log.notify ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-green-500/10 text-green-500 px-2 py-0.5 rounded-lg border border-green-500/20">
-                            <Bell size={10} /> SENT
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-xs italic font-semibold">—</span>
-                        )}
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-green-500/10 text-green-500 px-2 py-0.5 rounded-lg border border-green-500/20">
+                          <Bell size={10} /> SENT
+                        </span>
                       </td>
                     </tr>
                   ))

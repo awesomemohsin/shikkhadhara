@@ -100,7 +100,7 @@ export default function ClassesPage() {
   // Apply filters
   const filteredClasses = classesList.filter((clsName) => {
     const matchesSearch = clsName.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const classSections = sections.filter((s) => s.class === clsName);
     const hasAssigned = classSections.some((s) => s.classTeacherId);
     const hasUnassigned = classSections.some((s) => !s.classTeacherId);
@@ -150,7 +150,7 @@ export default function ClassesPage() {
             </Button>
             <Button
               onClick={() => router.push('/dashboard/classes/add')}
-              className="flex items-center space-x-1.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl px-5 py-2 font-bold text-xs shadow-sm shrink-0"
+              className="flex items-center space-x-1.5 bg-white hover:bg-white-700 text-black rounded-xl px-5 py-2 font-bold text-xs shadow-sm shrink-0"
             >
               <Plus size={16} />
               <span>Add Class</span>

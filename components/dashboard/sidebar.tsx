@@ -141,9 +141,9 @@ const navItems = [
   { label: 'Settings', icon: Settings, href: '/dashboard/settings', roles: ['owner', 'admin'] },
   { label: 'Billing', icon: CreditCard, href: '/dashboard/billing', roles: ['owner', 'admin'] },
   { label: 'Support', icon: HelpCircle, href: '/dashboard/support', roles: ['owner', 'admin', 'teacher', 'student', 'parent', 'staff'] },
-  { label: 'Profile', icon: User, href: '/dashboard/profile', roles: ['owner', 'admin', 'teacher', 'student', 'parent', 'staff'] },
+  { label: 'Profile', icon: User, href: '/dashboard/settings?tab=profile', roles: ['owner', 'admin', 'teacher', 'student', 'parent', 'staff'] },
   { label: 'Active Sessions', icon: Smartphone, href: '/dashboard/active-sessions', roles: ['owner', 'admin', 'teacher', 'student', 'parent', 'staff'] },
-  { label: 'Password', icon: KeyRound, href: '/dashboard/change-password', roles: ['owner', 'admin', 'teacher', 'student', 'parent', 'staff'] }
+  { label: 'Password', icon: KeyRound, href: '/dashboard/settings?tab=security', roles: ['owner', 'admin', 'teacher', 'student', 'parent', 'staff'] }
 ];
 
 export function Sidebar() {

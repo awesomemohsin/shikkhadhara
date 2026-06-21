@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react';
 import { Contact, Plus, Search, RefreshCw, UserCheck, PhoneCall, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/lib/store';
 
 export default function ReceptionLogsPage() {
+  const { token } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'visitors' | 'enquiries' | 'calls'>('visitors');
   
-  // Custom states synced to local storage
   const [visitors, setVisitors] = useState<any[]>([]);
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [calls, setCalls] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Form states
   const [visitorName, setVisitorName] = useState('');
@@ -27,104 +29,152 @@ export default function ReceptionLogsPage() {
 
   const [alertMsg, setAlertMsg] = useState('');
 
+  const fetchLogs = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch('/api/reception', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setVisitors(data.visitors || []);
+        setEnquiries(data.enquiries || []);
+        setCalls(data.calls || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Sync local storage records
-    const v = localStorage.getItem('reception_visitors');
-    const e = localStorage.getItem('reception_enquiries');
-    const c = localStorage.getItem('reception_calls');
-
-    if (v) setVisitors(JSON.parse(v));
-    else {
-      const init = [{ id: '1', name: 'Ziaul Haque', phone: '+880 1711-223344', purpose: 'Meet Principal regarding science project', checkIn: new Date().toLocaleTimeString(), status: 'checked_in' }];
-      setVisitors(init);
-      localStorage.setItem('reception_visitors', JSON.stringify(init));
+    if (token) {
+      fetchLogs();
     }
+  }, [token]);
 
-    if (e) setEnquiries(JSON.parse(e));
-    else {
-      const init = [{ id: '1', guardianName: 'Sufia Begum', phone: '+880 1819-334455', class: 'Class 8', date: new Date().toLocaleDateString(), status: 'pending' }];
-      setEnquiries(init);
-      localStorage.setItem('reception_enquiries', JSON.stringify(init));
-    }
-
-    if (c) setCalls(JSON.parse(c));
-    else {
-      const init = [{ id: '1', caller: 'Rahim Ali', phone: '+880 1912-445566', notes: 'Enquired about admission dates', date: new Date().toLocaleDateString() }];
-      setCalls(init);
-      localStorage.setItem('reception_calls', JSON.stringify(init));
-    }
-  }, []);
-
-  const handleAddVisitor = (e: React.FormEvent) => {
+  const handleAddVisitor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!visitorName || !visitorPhone) return;
 
-    const newVisitor = {
-      id: Date.now().toString(),
-      name: visitorName,
-      phone: visitorPhone,
-      purpose: visitorPurpose || 'General Enquiry',
-      checkIn: new Date().toLocaleTimeString(),
-      status: 'checked_in'
-    };
+    try {
+      const response = await fetch('/api/reception', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'visitor',
+          name: visitorName,
+          phone: visitorPhone,
+          purpose: visitorPurpose || 'General Enquiry',
+          checkIn: new Date().toLocaleTimeString(),
+          status: 'checked_in'
+        })
+      });
 
-    const updated = [newVisitor, ...visitors];
-    setVisitors(updated);
-    localStorage.setItem('reception_visitors', JSON.stringify(updated));
-    setVisitorName('');
-    setVisitorPhone('');
-    setVisitorPurpose('');
-    triggerAlert('Visitor record added successfully!');
+      if (response.ok) {
+        setVisitorName('');
+        setVisitorPhone('');
+        setVisitorPurpose('');
+        triggerAlert('Visitor record added successfully!');
+        fetchLogs();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleAddEnquiry = (e: React.FormEvent) => {
+  const handleAddEnquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guardianName || !guardianPhone) return;
 
-    const newEnquiry = {
-      id: Date.now().toString(),
-      guardianName,
-      phone: guardianPhone,
-      class: `Class ${studentClass}`,
-      date: new Date().toLocaleDateString(),
-      status: 'pending'
-    };
+    try {
+      const response = await fetch('/api/reception', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'enquiry',
+          guardianName,
+          phone: guardianPhone,
+          class: `Class ${studentClass}`,
+          date: new Date().toLocaleDateString(),
+          status: 'pending'
+        })
+      });
 
-    const updated = [newEnquiry, ...enquiries];
-    setEnquiries(updated);
-    localStorage.setItem('reception_enquiries', JSON.stringify(updated));
-    setGuardianName('');
-    setGuardianPhone('');
-    triggerAlert('Admission enquiry recorded!');
+      if (response.ok) {
+        setGuardianName('');
+        setGuardianPhone('');
+        triggerAlert('Admission enquiry recorded!');
+        fetchLogs();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleAddCall = (e: React.FormEvent) => {
+  const handleAddCall = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!callerName || !callerPhone) return;
 
-    const newCall = {
-      id: Date.now().toString(),
-      caller: callerName,
-      phone: callerPhone,
-      notes: callNotes,
-      date: new Date().toLocaleDateString()
-    };
+    try {
+      const response = await fetch('/api/reception', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'call',
+          caller: callerName,
+          phone: callerPhone,
+          notes: callNotes,
+          date: new Date().toLocaleDateString()
+        })
+      });
 
-    const updated = [newCall, ...calls];
-    setCalls(updated);
-    localStorage.setItem('reception_calls', JSON.stringify(updated));
-    setCallerName('');
-    setCallerPhone('');
-    setCallNotes('');
-    triggerAlert('Phone log recorded!');
+      if (response.ok) {
+        setCallerName('');
+        setCallerPhone('');
+        setCallNotes('');
+        triggerAlert('Phone log recorded!');
+        fetchLogs();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const toggleCheckout = (id: string) => {
-    const updated = visitors.map((vis) =>
-      vis.id === id ? { ...vis, status: vis.status === 'checked_in' ? 'checked_out' : 'checked_in' } : vis
-    );
-    setVisitors(updated);
-    localStorage.setItem('reception_visitors', JSON.stringify(updated));
+  const toggleCheckout = async (id: string) => {
+    const target = visitors.find((vis) => vis._id === id);
+    if (!target) return;
+    const newStatus = target.status === 'checked_in' ? 'checked_out' : 'checked_in';
+
+    try {
+      const response = await fetch(`/api/reception?id=${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: newStatus
+        })
+      });
+
+      if (response.ok) {
+        fetchLogs();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const triggerAlert = (msg: string) => {
@@ -309,111 +359,120 @@ export default function ReceptionLogsPage() {
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm overflow-hidden">
           <h3 className="font-bold text-slate-850 dark:text-slate-200 text-base border-b pb-2 mb-4">Logged Entries</h3>
 
-          {activeTab === 'visitors' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-850">
-                  <tr>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Visitor Details</th>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Purpose</th>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Time</th>
-                    <th className="px-6 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-xs">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                  {visitors.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">No visitors logged today.</td></tr>
-                  ) : (
-                    visitors.map((v) => (
-                      <tr key={v.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-slate-850 dark:text-slate-200">{v.name}</p>
-                          <p className="text-[10px] text-slate-450 font-semibold">{v.phone}</p>
-                        </td>
-                        <td className="px-6 py-4 text-xs font-semibold text-slate-600 max-w-[200px] truncate">{v.purpose}</td>
-                        <td className="px-6 py-4 text-xs text-slate-500">{v.checkIn}</td>
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => toggleCheckout(v.id)}
-                            className={`text-[10px] font-bold px-3 py-1 rounded-full cursor-pointer ${
-                              v.status === 'checked_in' ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-slate-100 text-slate-550'
-                            }`}
-                          >
-                            {v.status === 'checked_in' ? 'Checked In' : 'Checked Out'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          {loading ? (
+            <div className="py-16 text-center text-slate-450 font-medium">
+              <RefreshCw className="animate-spin inline-block mr-2" size={16} />
+              Loading logged entries...
             </div>
-          )}
+          ) : (
+            <>
+              {activeTab === 'visitors' && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-850">
+                      <tr>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Visitor Details</th>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Purpose</th>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Time</th>
+                        <th className="px-6 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-xs">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                      {visitors.length === 0 ? (
+                        <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">No visitors logged today.</td></tr>
+                      ) : (
+                        visitors.map((v) => (
+                          <tr key={v._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-850 dark:text-slate-200">{v.name}</p>
+                              <p className="text-[10px] text-slate-450 font-semibold">{v.phone}</p>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-semibold text-slate-600 max-w-[200px] truncate">{v.purpose}</td>
+                            <td className="px-6 py-4 text-xs text-slate-500">{v.checkIn}</td>
+                            <td className="px-6 py-4 text-center">
+                              <button
+                                onClick={() => toggleCheckout(v._id)}
+                                className={`text-[10px] font-bold px-3 py-1 rounded-full cursor-pointer ${
+                                  v.status === 'checked_in' ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-slate-100 text-slate-550'
+                                }`}
+                              >
+                                {v.status === 'checked_in' ? 'Checked In' : 'Checked Out'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-          {activeTab === 'enquiries' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-850">
-                  <tr>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Guardian Details</th>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Grade Interest</th>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Date</th>
-                    <th className="px-6 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-xs">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                  {enquiries.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">No active enquiries recorded.</td></tr>
-                  ) : (
-                    enquiries.map((e) => (
-                      <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-slate-800 dark:text-slate-200">{e.guardianName}</p>
-                          <p className="text-[10px] text-slate-450 font-semibold">{e.phone}</p>
-                        </td>
-                        <td className="px-6 py-4 text-xs font-semibold text-slate-600">{e.class}</td>
-                        <td className="px-6 py-4 text-xs text-slate-500">{e.date}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="text-[10px] font-bold px-2.5 py-1 bg-yellow-500/10 text-yellow-600 rounded-full border border-yellow-500/20 uppercase">
-                            {e.status}
-                          </span>
-                        </td>
+              {activeTab === 'enquiries' && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-850">
+                      <tr>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Guardian Details</th>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Grade Interest</th>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Date</th>
+                        <th className="px-6 py-3 text-center font-bold text-slate-500 uppercase tracking-wider text-xs">Status</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                      {enquiries.length === 0 ? (
+                        <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">No active enquiries recorded.</td></tr>
+                      ) : (
+                        enquiries.map((e) => (
+                          <tr key={e._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-800 dark:text-slate-200">{e.guardianName}</p>
+                              <p className="text-[10px] text-slate-450 font-semibold">{e.phone}</p>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-semibold text-slate-600">{e.class}</td>
+                            <td className="px-6 py-4 text-xs text-slate-500">{e.date}</td>
+                            <td className="px-6 py-4 text-center">
+                              <span className="text-[10px] font-bold px-2.5 py-1 bg-yellow-500/10 text-yellow-600 rounded-full border border-yellow-500/20 uppercase">
+                                {e.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-          {activeTab === 'calls' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-850">
-                  <tr>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Caller Details</th>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Notes Summary</th>
-                    <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                  {calls.length === 0 ? (
-                    <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-400">No calls registered.</td></tr>
-                  ) : (
-                    calls.map((c) => (
-                      <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-slate-850 dark:text-slate-200">{c.caller}</p>
-                          <p className="text-[10px] text-slate-450 font-semibold">{c.phone}</p>
-                        </td>
-                        <td className="px-6 py-4 text-xs font-semibold text-slate-650 max-w-[240px] truncate">{c.notes}</td>
-                        <td className="px-6 py-4 text-xs text-slate-500">{c.date}</td>
+              {activeTab === 'calls' && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-850">
+                      <tr>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Caller Details</th>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Notes Summary</th>
+                        <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider text-xs">Date</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                      {calls.length === 0 ? (
+                        <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-400">No calls registered.</td></tr>
+                      ) : (
+                        calls.map((c) => (
+                          <tr key={c._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-850 dark:text-slate-200">{c.caller}</p>
+                              <p className="text-[10px] text-slate-450 font-semibold">{c.phone}</p>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-semibold text-slate-650 max-w-[240px] truncate">{c.notes}</td>
+                            <td className="px-6 py-4 text-xs text-slate-500">{c.date}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

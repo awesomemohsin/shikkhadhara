@@ -1,17 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { Settings as SettingsIcon, Save, KeyRound, Briefcase, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/dashboard/page-header';
+import { useSearchParams } from 'next/navigation';
 
-export default function SettingsPage() {
+function SettingsContent() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
   
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  
   const [activeTab, setActiveTab] = useState<'profile' | 'organization' | 'security'>('profile');
+
+  useEffect(() => {
+    if (tabParam === 'profile' || tabParam === 'organization' || tabParam === 'security') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -451,5 +461,13 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12 text-slate-400">Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }

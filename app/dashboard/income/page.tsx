@@ -19,52 +19,76 @@ export default function IncomePage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [alertMsg, setAlertMsg] = useState('');
 
-  useEffect(() => {
-    // Sourced from local storage or fallback to payments
-    const saved = localStorage.getItem('income_ledger');
-    if (saved) {
-      setIncomes(JSON.parse(saved));
-      setLoading(false);
-    } else {
-      // Default setup
-      const initial = [
-        { id: '1', title: 'Canteen Rent July', amount: 15000, category: 'Leases/Rent', payer: 'Mamun Canteen Co.', date: new Date().toLocaleDateString() },
-        { id: '2', title: 'Admission Form Sales Grade 6', amount: 25000, category: 'Admission Forms', payer: 'Various Applicants', date: new Date().toLocaleDateString() }
-      ];
-      setIncomes(initial);
-      localStorage.setItem('income_ledger', JSON.stringify(initial));
+  const fetchIncomes = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch('/api/income', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIncomes(data.incomes || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const handleAddIncome = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (token) {
+      fetchIncomes();
+    }
+  }, [token]);
+
+  const handleAddIncome = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !amount) return;
 
-    const newInc = {
-      id: Date.now().toString(),
-      title,
-      amount: parseFloat(amount) || 0,
-      category,
-      payer: payer || 'Anonymous',
-      date: new Date(date).toLocaleDateString()
-    };
+    try {
+      const response = await fetch('/api/income', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title,
+          amount: parseFloat(amount) || 0,
+          category,
+          payer: payer || 'Anonymous',
+          date: date
+        })
+      });
 
-    const updated = [newInc, ...incomes];
-    setIncomes(updated);
-    localStorage.setItem('income_ledger', JSON.stringify(updated));
-
-    setTitle('');
-    setAmount('');
-    setPayer('');
-    setAlertMsg('Income logged successfully!');
-    setTimeout(() => setAlertMsg(''), 3000);
+      if (response.ok) {
+        setTitle('');
+        setAmount('');
+        setPayer('');
+        setAlertMsg('Income logged successfully!');
+        setTimeout(() => setAlertMsg(''), 3000);
+        fetchIncomes();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const updated = incomes.filter((inc) => inc.id !== id);
-    setIncomes(updated);
-    localStorage.setItem('income_ledger', JSON.stringify(updated));
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this income transaction?')) return;
+    try {
+      const response = await fetch(`/api/income?id=${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        fetchIncomes();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
@@ -193,16 +217,16 @@ export default function IncomePage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
                   {incomes.map((inc) => (
-                    <tr key={inc.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
+                    <tr key={inc._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
                       <td className="px-6 py-4">
                         <p className="font-bold text-slate-850 dark:text-slate-200">{inc.title}</p>
-                        <p className="text-[10px] text-slate-450 mt-0.5">{inc.date}</p>
+                        <p className="text-[10px] text-slate-450 mt-0.5">{inc.date.includes('-') ? new Date(inc.date).toLocaleDateString() : inc.date}</p>
                       </td>
                       <td className="px-6 py-4 text-xs font-semibold text-slate-650">{inc.payer}</td>
                       <td className="px-6 py-4 text-xs text-slate-500 font-bold">{inc.category}</td>
                       <td className="px-6 py-4 text-right text-emerald-600 font-extrabold">৳{inc.amount.toLocaleString()}</td>
                       <td className="px-6 py-4 text-center">
-                        <button onClick={() => handleDelete(inc.id)} className="text-slate-400 hover:text-rose-600 transition-colors">
+                        <button onClick={() => handleDelete(inc._id)} className="text-slate-400 hover:text-rose-600 transition-colors">
                           <Trash2 size={14} />
                         </button>
                       </td>

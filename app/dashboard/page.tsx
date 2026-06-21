@@ -35,9 +35,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const user = useAuthStore((state) => state.user);
-  const tenant = useAuthStore((state) => state.tenant);
-  const token = useAuthStore((state) => state.token);
+  const { user, tenant, token } = useAuthStore();
   const tenantSlug = useTenantSlug();
   const router = useRouter();
 

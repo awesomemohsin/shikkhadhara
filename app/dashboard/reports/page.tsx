@@ -1,59 +1,114 @@
 'use client';
 
-import { useState } from 'react';
-import { BarChart3, Download, Printer, Calendar, ShieldAlert, Award, FileText, CheckCircle, TrendingUp, TrendingDown, Percent } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BarChart3, Download, Printer, Calendar, ShieldAlert, Award, FileText, CheckCircle, TrendingUp, TrendingDown, Percent, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatCards } from '@/components/dashboard/stat-cards';
 import { PremiumTable } from '@/components/dashboard/premium-table';
+import { useAuthStore } from '@/lib/store';
 
 export default function ReportsHubPage() {
+  const { token } = useAuthStore();
   const [reportType, setReportType] = useState<'attendance' | 'income' | 'expenses' | 'behaviour'>('attendance');
   const [selectedClass, setSelectedClass] = useState('8');
   const [dateFrom, setDateFrom] = useState('2026-06-01');
   const [dateTo, setDateTo] = useState('2026-06-30');
 
-  // Mock records
-  const reportMockData = {
-    attendance: [
-      { name: 'Tanvir Rahman', roll: '01', present: 22, absent: 2, percentage: '91%' },
-      { name: 'Maimuna Islam', roll: '03', present: 24, absent: 0, percentage: '100%' },
-      { name: 'Jannat Ara', roll: '05', present: 20, absent: 4, percentage: '83%' }
-    ],
-    income: [
-      { title: 'Canteen Rent July', amount: 15000, category: 'Leases/Rent', payer: 'Mamun Canteen Co.', date: '01/07/2026' },
-      { title: 'Admission Form Sales Grade 6', amount: 25000, category: 'Admission Forms', payer: 'Various Applicants', date: '04/07/2026' }
-    ],
-    expenses: [
-      { title: 'Monthly Electricity Bill June', amount: 8400, category: 'Utility Bills', vendor: 'DESCO Power Co.', date: '25/06/2026' },
-      { title: 'Whiteboards Procurement', amount: 12000, category: 'Stationery', vendor: 'PaperBack Suppliers', date: '28/06/2026' }
-    ],
-    behaviour: [
-      { name: 'Tanvir Rahman', roll: '01', incident: 'Outstanding Leadership in Science Fair', type: 'Positive', points: '+10' },
-      { name: 'Maimuna Islam', roll: '03', incident: 'Late Assignment Submission twice', type: 'Negative', points: '-5' }
-    ]
+  const [reportData, setReportData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchReportData = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/reports?type=${reportType}&class=${selectedClass}&dateFrom=${dateFrom}&dateTo=${dateTo}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setReportData(data.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExport = (format: string) => {
-    alert(`Exporting ${reportType} report as ${format.toUpperCase()}...`);
+  useEffect(() => {
+    if (token) {
+      fetchReportData();
+    }
+  }, [token, reportType, selectedClass, dateFrom, dateTo]);
+
+  const handleExportCSV = () => {
+    if (reportData.length === 0) {
+      alert('No data available to export.');
+      return;
+    }
+
+    let csvContent = 'data:text/csv;charset=utf-8,';
+    const headers = getTableHeaders();
+    csvContent += headers.join(',') + '\r\n';
+
+    reportData.forEach((row) => {
+      let rowData: string[] = [];
+      if (reportType === 'attendance') {
+        rowData = [row.name, row.roll, row.present, row.absent, row.percentage];
+      } else if (reportType === 'income') {
+        rowData = [row.title, row.category, row.payer, row.amount];
+      } else if (reportType === 'expenses') {
+        rowData = [row.title, row.category, row.vendor, row.amount];
+      } else if (reportType === 'behaviour') {
+        rowData = [row.name, row.roll, row.incident, row.type, row.points];
+      }
+      const escapedRow = rowData.map((val) => `"${String(val).replace(/"/g, '""')}"`);
+      csvContent += escapedRow.join(',') + '\r\n';
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${reportType}_report_${dateFrom}_to_${dateTo}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handlePrint = () => {
     window.print();
   };
 
-  // Dynamic summary calculations
-  const totalIncome = reportMockData.income.reduce((sum, item) => sum + item.amount, 0);
-  const totalExpenses = reportMockData.expenses.reduce((sum, item) => sum + item.amount, 0);
+  const getAttendanceRate = () => {
+    if (reportType !== 'attendance' || reportData.length === 0) return '92.5%';
+    const rates = reportData.map((r) => parseFloat(r.percentage) || 100);
+    const avg = rates.reduce((sum, val) => sum + val, 0) / rates.length;
+    return `${Math.round(avg)}%`;
+  };
+
+  const getIncomeTotal = () => {
+    if (reportType !== 'income') return 0;
+    return reportData.reduce((sum, r) => sum + (r.amount || 0), 0);
+  };
+
+  const getExpensesTotal = () => {
+    if (reportType !== 'expenses') return 0;
+    return reportData.reduce((sum, r) => sum + (r.amount || 0), 0);
+  };
+
+  const getIncidentsCount = () => {
+    if (reportType !== 'behaviour') return 0;
+    return reportData.length;
+  };
 
   const reportStats = [
-    { title: 'Attendance Rate', value: '91.3%', icon: Percent, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30', description: 'Average active rate' },
-    { title: 'Income Generated', value: `৳${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30', description: 'Selected period' },
-    { title: 'Expenses Incurred', value: `৳${totalExpenses.toLocaleString()}`, icon: TrendingDown, color: 'text-rose-600 bg-rose-50 dark:bg-rose-955/30', description: 'Voucher outflows' },
-    { title: 'Incident logs', value: reportMockData.behaviour.length, icon: ShieldAlert, color: 'text-amber-600 bg-amber-50 dark:bg-amber-955/30', description: 'Points evaluations' }
+    { title: 'Attendance Rate', value: getAttendanceRate(), icon: Percent, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30', description: 'Average active rate' },
+    { title: 'Income Generated', value: `৳${getIncomeTotal().toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30', description: 'Selected period' },
+    { title: 'Expenses Incurred', value: `৳${getExpensesTotal().toLocaleString()}`, icon: TrendingDown, color: 'text-rose-600 bg-rose-50 dark:bg-rose-955/30', description: 'Voucher outflows' },
+    { title: 'Incident logs', value: getIncidentsCount().toString(), icon: ShieldAlert, color: 'text-amber-600 bg-amber-50 dark:bg-amber-955/30', description: 'Points evaluations' }
   ];
 
-  // Dynamic table headers mapping
   const getTableHeaders = () => {
     switch (reportType) {
       case 'attendance':
@@ -76,7 +131,7 @@ export default function ReportsHubPage() {
         actions={
           <div className="flex gap-2 print:hidden">
             <Button
-              onClick={() => handleExport('excel')}
+              onClick={handleExportCSV}
               variant="outline"
               className="flex items-center space-x-1.5 text-slate-700 bg-white border border-slate-205 hover:bg-slate-50 font-bold text-xs"
             >
@@ -85,7 +140,7 @@ export default function ReportsHubPage() {
             </Button>
             <Button
               onClick={handlePrint}
-              className="flex items-center space-x-1.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 font-bold text-xs shadow-sm"
+              className="flex items-center space-x-1.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 font-bold text-xs shadow-sm cursor-pointer"
             >
               <Printer size={14} />
               <span>Print Report</span>
@@ -164,63 +219,70 @@ export default function ReportsHubPage() {
 
         {/* Right table view */}
         <div className="lg:col-span-3">
-          <PremiumTable
-            headers={getTableHeaders()}
-            stickyHeader={true}
-            totalRecords={reportMockData[reportType].length}
-          >
-            {reportType === 'attendance' &&
-              reportMockData.attendance.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">{row.name}</td>
-                  <td className="px-6 py-4 font-bold text-slate-500">{row.roll}</td>
-                  <td className="px-6 py-4 text-xs font-semibold text-slate-700 dark:text-slate-300">{row.present} Days</td>
-                  <td className="px-6 py-4 text-xs font-semibold text-rose-600">{row.absent} Days</td>
-                  <td className="px-6 py-4 text-xs font-extrabold text-emerald-600">{row.percentage}</td>
-                </tr>
-              ))}
+          {loading ? (
+            <div className="py-16 text-center text-slate-450 font-medium bg-white dark:bg-slate-900 border rounded-3xl">
+              <RefreshCw className="animate-spin inline-block mr-2 text-indigo-650" size={16} />
+              Aggregating statistics from database...
+            </div>
+          ) : (
+            <PremiumTable
+              headers={getTableHeaders()}
+              stickyHeader={true}
+              totalRecords={reportData.length}
+            >
+              {reportType === 'attendance' &&
+                reportData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">{row.name}</td>
+                    <td className="px-6 py-4 font-bold text-slate-500">{row.roll}</td>
+                    <td className="px-6 py-4 text-xs font-semibold text-slate-700 dark:text-slate-300">{row.present} Days</td>
+                    <td className="px-6 py-4 text-xs font-semibold text-rose-600">{row.absent} Days</td>
+                    <td className="px-6 py-4 text-xs font-extrabold text-emerald-600">{row.percentage}</td>
+                  </tr>
+                ))}
 
-            {reportType === 'income' &&
-              reportMockData.income.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{row.title}</p>
-                    <span className="text-[10px] text-slate-400 font-bold">{row.date}</span>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-500">{row.category}</td>
-                  <td className="px-6 py-4 text-xs font-semibold text-slate-650">{row.payer}</td>
-                  <td className="px-6 py-4 text-xs font-extrabold text-emerald-600">৳{row.amount.toLocaleString()}</td>
-                </tr>
-              ))}
+              {reportType === 'income' &&
+                reportData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{row.title}</p>
+                      <span className="text-[10px] text-slate-400 font-bold">{row.date}</span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-500">{row.category}</td>
+                    <td className="px-6 py-4 text-xs font-semibold text-slate-650">{row.payer}</td>
+                    <td className="px-6 py-4 text-xs font-extrabold text-emerald-600">৳{row.amount.toLocaleString()}</td>
+                  </tr>
+                ))}
 
-            {reportType === 'expenses' &&
-              reportMockData.expenses.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{row.title}</p>
-                    <span className="text-[10px] text-slate-400 font-bold">{row.date}</span>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-500">{row.category}</td>
-                  <td className="px-6 py-4 text-xs font-semibold text-slate-650">{row.vendor}</td>
-                  <td className="px-6 py-4 text-xs font-extrabold text-rose-600">৳{row.amount.toLocaleString()}</td>
-                </tr>
-              ))}
+              {reportType === 'expenses' &&
+                reportData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{row.title}</p>
+                      <span className="text-[10px] text-slate-400 font-bold">{row.date}</span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-500">{row.category}</td>
+                    <td className="px-6 py-4 text-xs font-semibold text-slate-650">{row.vendor}</td>
+                    <td className="px-6 py-4 text-xs font-extrabold text-rose-600">৳{row.amount.toLocaleString()}</td>
+                  </tr>
+                ))}
 
-            {reportType === 'behaviour' &&
-              reportMockData.behaviour.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{row.name}</p>
-                    <span className="text-[10px] text-slate-400 font-bold">Roll: {row.roll}</span>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-semibold text-slate-650">{row.incident}</td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-550">{row.type}</td>
-                  <td className={`px-6 py-4 text-xs font-black ${row.type === 'Positive' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {row.points}
-                  </td>
-                </tr>
-              ))}
-          </PremiumTable>
+              {reportType === 'behaviour' &&
+                reportData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{row.name}</p>
+                      <span className="text-[10px] text-slate-400 font-bold">Roll: {row.roll}</span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-semibold text-slate-650">{row.incident}</td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-550">{row.type}</td>
+                    <td className={`px-6 py-4 text-xs font-black ${row.type?.toLowerCase() === 'positive' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {row.points}
+                    </td>
+                  </tr>
+                ))}
+            </PremiumTable>
+          )}
         </div>
       </div>
     </div>

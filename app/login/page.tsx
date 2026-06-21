@@ -90,13 +90,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950 overflow-hidden font-sans">
+    <div className="min-h-screen relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50 overflow-hidden font-sans">
       {/* Background gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/0 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-violet-500/20 to-pink-500/0 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-500/10 to-transparent blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-violet-500/10 to-transparent blur-[120px] pointer-events-none" />
       
       <div className="max-w-md w-full relative z-10 space-y-8">
-        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-800/40 rounded-3xl p-8 sm:p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+        <div className="backdrop-blur-xl bg-white border border-slate-200/60 rounded-3xl p-8 sm:p-10 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col items-center mb-8">
             <Image
               src="/logo.png"
@@ -104,9 +104,9 @@ export default function LoginPage() {
               width={160}
               height={44}
               priority
-              className="h-10 w-auto object-contain brightness-110 mb-4"
+              className="h-10 w-auto object-contain mb-4"
             />
-            <p className="text-center text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+            <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Multi-Tenant Management System
             </p>
           </div>
@@ -114,13 +114,13 @@ export default function LoginPage() {
           <form className="space-y-5" onSubmit={handleSubmit}>
             {error && (
               <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-4">
-                <p className="text-xs text-rose-400 font-medium text-center">{error}</p>
+                <p className="text-xs text-rose-600 font-medium text-center">{error}</p>
               </div>
             )}
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-[10px] font-semibold text-slate-450 uppercase tracking-wider mb-2">
+                <label htmlFor="email" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                   Email address
                 </label>
                 <Input
@@ -132,11 +132,11 @@ export default function LoginPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full bg-slate-950/50 border-slate-800/60 focus:border-indigo-500 text-white rounded-xl py-2.5 placeholder:text-slate-655"
+                  className="w-full bg-slate-50/50 border-slate-200 focus:border-indigo-500 text-slate-800 rounded-xl py-2.5 placeholder:text-slate-400 font-medium focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div>
-                <label htmlFor="password" className="block text-[10px] font-semibold text-slate-455 uppercase tracking-wider mb-2">
+                <label htmlFor="password" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                   Password
                 </label>
                 <Input
@@ -148,7 +148,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full bg-slate-950/50 border-slate-800/60 focus:border-indigo-500 text-white rounded-xl py-2.5 placeholder:text-slate-655"
+                  className="w-full bg-slate-50/50 border-slate-200 focus:border-indigo-500 text-slate-800 rounded-xl py-2.5 placeholder:text-slate-400 font-medium focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -157,7 +157,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:-translate-y-[1px] disabled:opacity-50 text-sm"
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-600/15 transition-all duration-200 hover:-translate-y-[1px] disabled:opacity-50 text-sm"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -168,10 +168,10 @@ export default function LoginPage() {
               </Button>
             </div>
 
-            <div className="text-center mt-6 pt-4 border-t border-slate-800/40">
-              <p className="text-sm text-slate-450">
+            <div className="text-center mt-6 pt-4 border-t border-slate-100">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
                 Don&apos;t have an account?{' '}
-                <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors duration-150">
+                <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors duration-150">
                   Register here
                 </Link>
               </p>

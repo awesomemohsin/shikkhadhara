@@ -610,6 +610,88 @@ const supportTicketSchema = new mongoose.Schema({
 
 export const SupportTicket = mongoose.models.SupportTicket || mongoose.model('SupportTicket', supportTicketSchema);
 
+// CalendarEvent Schema
+const calendarEventSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  title: { type: String, required: true },
+  type: { type: String, enum: ['event', 'holiday', 'exam'], default: 'event' },
+  date: { type: String, required: true }, // Format: YYYY-MM-DD
+  endDate: { type: String }, // Format: YYYY-MM-DD
+  desc: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const CalendarEvent = mongoose.models.CalendarEvent || mongoose.model('CalendarEvent', calendarEventSchema);
+
+// LessonPlan Schema
+const lessonPlanSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  class: { type: String, required: true },
+  subject: { type: String, required: true },
+  topic: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'in_progress', 'completed'], default: 'pending' },
+  completion: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+export const LessonPlan = mongoose.models.LessonPlan || mongoose.model('LessonPlan', lessonPlanSchema);
+
+// VisitorLog Schema (covers visitors, enquiries, call logs)
+const visitorLogSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  type: { type: String, enum: ['visitor', 'enquiry', 'call'], required: true },
+  // Visitor fields
+  name: String,
+  phone: String,
+  purpose: String,
+  checkIn: String,
+  status: { type: String, enum: ['checked_in', 'checked_out'], default: 'checked_in' },
+  // Enquiry fields
+  guardianName: String,
+  class: String,
+  date: String, // Format: YYYY-MM-DD or DD/MM/YYYY
+  // Call fields
+  caller: String,
+  notes: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const VisitorLog = mongoose.models.VisitorLog || mongoose.model('VisitorLog', visitorLogSchema);
+
+// BehaviourLog Schema
+const behaviourLogSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' },
+  studentName: { type: String, required: true },
+  studentRoll: String,
+  class: String,
+  incident: { type: String, required: true },
+  type: { type: String, enum: ['Positive', 'Negative'], required: true },
+  points: { type: String, required: true }, // e.g. '+10', '-5'
+  recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const BehaviourLog = mongoose.models.BehaviourLog || mongoose.model('BehaviourLog', behaviourLogSchema);
+
+// Transaction Schema (covers income/expenses)
+const transactionSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  type: { type: String, enum: ['income', 'expense'], required: true },
+  title: { type: String, required: true },
+  amount: { type: Number, required: true },
+  category: { type: String, required: true },
+  date: { type: String, required: true }, // Format: DD/MM/YYYY or YYYY-MM-DD
+  payer: String, // for income
+  vendor: String, // for expense
+  notes: String,
+  status: { type: String, default: 'approved' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', transactionSchema);
+
 
 
 

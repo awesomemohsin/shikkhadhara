@@ -111,7 +111,7 @@ export default function ExamsPage() {
                       <td className="px-6 py-4 text-slate-700 dark:text-slate-300 font-medium">
                         {new Date(exam.date).toLocaleDateString()} at {new Date(exam.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-800 dark:text-slate-200 font-extrabold">৳{exam.totalMarks}</td>
+                      <td className="px-6 py-4 text-right text-slate-800 dark:text-slate-200 font-extrabold">{exam.totalMarks}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase ${
