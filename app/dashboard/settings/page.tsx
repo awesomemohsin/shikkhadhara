@@ -141,6 +141,43 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveOrganization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('/api/organization', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: organizationData.name,
+          timezone: organizationData.timezone,
+          currency: organizationData.currency,
+          language: organizationData.language,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess('Organization profile settings updated successfully!');
+        fetchOrganization();
+      } else {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Failed to update organization settings');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const canEditOrg = user?.role === 'admin' || user?.role === 'owner';
+
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
@@ -262,7 +299,7 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'organization' && (
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+              <form onSubmit={handleSaveOrganization} className="space-y-6">
                 <div>
                   <h3 className="font-extrabold text-slate-850 dark:text-white text-base border-b pb-2 mb-4">
                     Organization Profile
@@ -274,8 +311,13 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         value={organizationData.name}
-                        disabled
-                        className="w-full px-3.5 py-2.5 bg-slate-100/50 dark:bg-slate-950 border border-slate-200 border-dashed text-slate-400 rounded-xl text-sm cursor-not-allowed"
+                        onChange={(e) => setOrganizationData({ ...organizationData, name: e.target.value })}
+                        disabled={!canEditOrg}
+                        className={
+                          canEditOrg
+                            ? 'w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold text-slate-800 dark:text-white'
+                            : 'w-full px-3.5 py-2.5 bg-slate-100/50 dark:bg-slate-950 border border-slate-200 border-dashed text-slate-400 rounded-xl text-sm cursor-not-allowed'
+                        }
                         required
                       />
                     </div>
@@ -285,8 +327,13 @@ export default function SettingsPage() {
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Default Timezone</label>
                         <select
                           value={organizationData.timezone}
-                          disabled
-                          className="w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed"
+                          onChange={(e) => setOrganizationData({ ...organizationData, timezone: e.target.value })}
+                          disabled={!canEditOrg}
+                          className={
+                            canEditOrg
+                              ? 'w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-850 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer'
+                              : 'w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed'
+                          }
                         >
                           <option value="Asia/Dhaka">Asia/Dhaka (GMT+6)</option>
                           <option value="UTC">UTC (GMT+0)</option>
@@ -296,8 +343,13 @@ export default function SettingsPage() {
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Billing Currency</label>
                         <select
                           value={organizationData.currency}
-                          disabled
-                          className="w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed"
+                          onChange={(e) => setOrganizationData({ ...organizationData, currency: e.target.value })}
+                          disabled={!canEditOrg}
+                          className={
+                            canEditOrg
+                              ? 'w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-855 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer'
+                              : 'w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed'
+                          }
                         >
                           <option value="BDT">BDT (৳)</option>
                           <option value="USD">USD ($)</option>
@@ -307,15 +359,33 @@ export default function SettingsPage() {
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">System Language</label>
                         <select
                           value={organizationData.language}
-                          disabled
-                          className="w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed"
+                          onChange={(e) => setOrganizationData({ ...organizationData, language: e.target.value })}
+                          disabled={!canEditOrg}
+                          className={
+                            canEditOrg
+                              ? 'w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-250 dark:border-slate-800 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-855 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer'
+                              : 'w-full px-3.5 py-2 bg-slate-100/55 border border-slate-200 dark:border-slate-850 dark:bg-slate-955 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed'
+                          }
                         >
                           <option value="en">English (US)</option>
                           <option value="bn">Bengali (BD)</option>
                         </select>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-1">SaaS parameters are managed in organization setup. Contact system administrator for details.</p>
+                    {canEditOrg ? (
+                      <div className="pt-2">
+                        <Button
+                          type="submit"
+                          disabled={loading}
+                          className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold px-6 py-2.5 shadow-xs flex items-center space-x-1.5 text-xs"
+                        >
+                          <Save size={14} />
+                          <span>{loading ? 'Saving Settings...' : 'Save Organization Changes'}</span>
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 font-semibold mt-1">SaaS parameters are managed in organization setup. Contact system administrator for details.</p>
+                    )}
                   </div>
                 </div>
               </form>
