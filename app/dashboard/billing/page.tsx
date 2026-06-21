@@ -12,9 +12,7 @@ export default function BillingPlansPage() {
     studentsLimit: 500,
     studentsUsed: 342,
     staffLimit: 50,
-    staffUsed: 18,
-    schoolsLimit: 5,
-    schoolsUsed: 2
+    staffUsed: 18
   };
 
   const plans = [
@@ -24,17 +22,15 @@ export default function BillingPlansPage() {
       price: '৳5,000/mo',
       studentsLimit: 200,
       staffLimit: 20,
-      schoolsLimit: 1,
       features: ['Basic Student Registry', 'Class & Routines Timetable', 'Email Broadcast Notifications', 'Monthly fee invoices']
     },
     {
       id: 'professional',
-      name: 'Professional Multi-School',
+      name: 'Professional School Plan',
       price: '৳15,000/mo',
       studentsLimit: 1000,
       staffLimit: 100,
-      schoolsLimit: 5,
-      features: ['All basic features', 'AI Question Paper Generator', 'WhatsApp/SMS gateway integration', 'Behavior Records tracking', 'Unlimited Certificates design', 'Multi-school switchers console']
+      features: ['All basic features', 'AI Question Paper Generator', 'WhatsApp/SMS gateway integration', 'Behavior Records tracking', 'Unlimited Certificates design']
     },
     {
       id: 'enterprise',
@@ -42,7 +38,6 @@ export default function BillingPlansPage() {
       price: 'Custom Price',
       studentsLimit: 'Unlimited',
       staffLimit: 'Unlimited',
-      schoolsLimit: 'Unlimited',
       features: ['Dedicated server deployment', 'Custom mobile app branding', '24/7 Priority support hotline', 'Custom API data triggers', 'Audit logs archive backup']
     }
   ];
@@ -60,7 +55,7 @@ export default function BillingPlansPage() {
       </div>
 
       {/* Plan limits indicator gauges */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
           <div className="flex justify-between items-center text-xs font-bold text-slate-450 uppercase">
             <span>Student Registration Limits</span>
@@ -81,17 +76,6 @@ export default function BillingPlansPage() {
             <div className="h-full bg-indigo-650 rounded-full" style={{ width: `${(planStats.staffUsed / planStats.staffLimit) * 100}%` }} />
           </div>
           <p className="text-[10px] text-slate-450 font-semibold">Uses 36% of subscription allocation limit.</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-455 uppercase">
-            <span>Multi-School Limits</span>
-            <span>{planStats.schoolsUsed} / {planStats.schoolsLimit}</span>
-          </div>
-          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-            <div className="h-full bg-indigo-650 rounded-full" style={{ width: `${(planStats.schoolsUsed / planStats.schoolsLimit) * 100}%` }} />
-          </div>
-          <p className="text-[10px] text-slate-450 font-semibold">Uses 40% of school profiles quota.</p>
         </div>
       </div>
 
@@ -121,7 +105,6 @@ export default function BillingPlansPage() {
                 <div className="pl-2 space-y-1">
                   <p>• Students: {p.studentsLimit}</p>
                   <p>• Staffs: {p.staffLimit}</p>
-                  <p>• School profiles: {p.schoolsLimit}</p>
                 </div>
               </div>
 

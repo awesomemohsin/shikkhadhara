@@ -44,7 +44,6 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSchoolProfile, setSelectedSchoolProfile] = useState('main_campus');
 
   const getHref = (href: string) => {
     if (user?.role === 'owner') {
@@ -318,11 +317,6 @@ export default function DashboardPage() {
     );
   }
   // 3. SCHOOL ADMINISTRATOR DASHBOARD VIEW
-  
-    const schoolProfiles = [
-    { id: 'main_campus', name: 'ShikkhaDhara Main Campus' },
-    { id: 'branch_dhaka', name: 'ShikkhaDhara Dhaka Branch' }
-  ];
 
   const planStats = {
     studentsLimit: 500,
@@ -384,19 +378,6 @@ export default function DashboardPage() {
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Active Academic Year</p>
               <p className="text-sm font-semibold text-white">{stats.activeSession || '2026-2027'}</p>
             </div>
-            <div className="h-6 w-[1px] bg-white/15" />
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Select School Profile</p>
-              <select
-                value={selectedSchoolProfile}
-                onChange={(e) => setSelectedSchoolProfile(e.target.value)}
-                className="bg-slate-900/60 text-xs text-indigo-300 outline-none border border-indigo-500/25 rounded-lg py-1 px-2 font-bold cursor-pointer"
-              >
-                {schoolProfiles.map((prof) => (
-                  <option key={prof.id} value={prof.id} className="bg-slate-955 text-white">{prof.name}</option>
-                ))}
-              </select>
-            </div>
           </div>
         </div>
 
@@ -404,7 +385,7 @@ export default function DashboardPage() {
         <div className="w-full lg:w-80 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Subscription Limit Allocation</h3>
-            <p className="text-[11px] text-slate-450 mt-1 font-semibold">Active Plan: Professional Multi-School</p>
+            <p className="text-[11px] text-slate-450 mt-1 font-semibold">Active Plan: Professional Plan</p>
           </div>
 
           <div className="space-y-3.5 my-4">
