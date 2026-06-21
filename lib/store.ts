@@ -69,16 +69,20 @@ export const useAuthStore = create<AuthStore>()(
 
 interface UIStore {
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   theme: 'light' | 'dark';
   setSidebarOpen: (open: boolean) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   setTheme: (theme: 'light' | 'dark') => void;
 }
 
 export const useUIStore = create<UIStore>()(
   devtools((set) => ({
     sidebarOpen: true,
+    sidebarCollapsed: false,
     theme: 'light',
     setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+    setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
     setTheme: (theme) => set({ theme }),
   }))
 );

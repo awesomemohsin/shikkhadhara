@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, Suspense } from 'react';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { TopNavbar } from '@/components/dashboard/top-navbar';
 import { useAuthStore } from '@/lib/store';
@@ -22,8 +22,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [user, tenantSlug, pathname, router]);
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
+    <div className="flex h-screen bg-slate-50/55 dark:bg-slate-950">
+      <Suspense fallback={<div className="w-64 bg-slate-950 text-slate-300" />}>
+        <Sidebar />
+      </Suspense>
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNavbar />
         <main className="flex-1 overflow-auto">
