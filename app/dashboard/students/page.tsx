@@ -181,7 +181,7 @@ function StudentsPageContent() {
         <div className="flex items-center justify-between bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100/50 dark:border-indigo-900/30 rounded-2xl p-4 text-xs font-semibold text-indigo-850 dark:text-indigo-300">
           <div className="flex items-center gap-2">
             <span>Active Grade Filter:</span>
-            <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase">Class {classFilter}</span>
+            <span className="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase">{classFilter.startsWith('Class') ? classFilter : `Class ${classFilter}`}</span>
           </div>
           <button
             onClick={handleClearFilter}
@@ -248,7 +248,7 @@ function StudentsPageContent() {
                   {student.email || '—'}
                 </td>
                 <td className="px-6 py-4 text-xs font-bold text-slate-750 dark:text-slate-300">
-                  Class {student.class} — {student.section || 'N/A'}
+                  {student.class?.startsWith('Class') ? student.class : `Class ${student.class}`} — {student.section || 'N/A'}
                 </td>
                 <td className="px-6 py-4 text-xs font-semibold text-slate-500">
                   {student.subjectGroup || 'N/A'}
@@ -370,7 +370,7 @@ function StudentsPageContent() {
                   </div>
                   <div>
                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Class</span>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Class {viewingStudent.class}</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{viewingStudent.class?.startsWith('Class') ? viewingStudent.class : `Class ${viewingStudent.class}`}</span>
                   </div>
                   <div>
                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Section</span>

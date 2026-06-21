@@ -199,7 +199,7 @@ export default function ClassesPage() {
                   className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-all duration-150 group"
                 >
                   <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200">
-                    Class {className}
+                    {className.startsWith('Class') ? className : `Class ${className}`}
                   </td>
                   <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
                     ৳{(classSections[0]?.monthlyFee || 0).toLocaleString()}

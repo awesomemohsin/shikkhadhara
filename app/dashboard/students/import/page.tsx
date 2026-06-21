@@ -269,7 +269,7 @@ function ImportPageContent() {
                           <td className="px-4 py-3 font-semibold text-slate-650">{student.lastName || ''}</td>
                           <td className="px-4 py-3">
                             <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-500">
-                              Class {student.class}
+                              {student.class?.startsWith('Class') ? student.class : `Class ${student.class}`}
                             </span>
                           </td>
                           <td className="px-4 py-3">{student.section || 'N/A'}</td>

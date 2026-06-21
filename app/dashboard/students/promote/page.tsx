@@ -207,7 +207,7 @@ function PromotePageContent() {
                     <option value="">Select Source Class</option>
                     {uniqueClasses.map((cls) => (
                       <option key={cls} value={cls}>
-                        Class {cls}
+                        {cls.startsWith('Class') ? cls : `Class ${cls}`}
                       </option>
                     ))}
                   </select>
@@ -267,7 +267,7 @@ function PromotePageContent() {
                     <option value="">Select Target Class</option>
                     {uniqueClasses.map((cls) => (
                       <option key={cls} value={cls}>
-                        Class {cls}
+                        {cls.startsWith('Class') ? cls : `Class ${cls}`}
                       </option>
                     ))}
                   </select>

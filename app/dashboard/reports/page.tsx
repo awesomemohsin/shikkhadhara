@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { StatCards } from '@/components/dashboard/stat-cards';
 import { PremiumTable } from '@/components/dashboard/premium-table';
 import { useAuthStore } from '@/lib/store';
+import { formatClassName } from '@/lib/utils';
 
 export default function ReportsHubPage() {
   const { token } = useAuthStore();
